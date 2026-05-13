@@ -1,5 +1,5 @@
-// Seoul Subway complete station data with line info
-// Lines: 1-9호선, 경의중앙선, 공항철도, 분당선, 신분당선, 경춘선, 수인선, 우이신설선, 서해선, 경강선, 신림선
+// Seoul Subway complete station data — All lines including additional lines
+// Lines: 1-9호선, 경의중앙선, 공항철도, 수인분당선, 신분당선, 경춘선, 우이신설선, 신림선, 김포골드라인, GTX-A
 
 export interface StationInfo {
   id: string;
@@ -11,550 +11,390 @@ export interface StationInfo {
 }
 
 export const LINE_COLORS: Record<string, string> = {
-  "1": "#0052A4",
-  "2": "#00A84D",
-  "3": "#EF7C1C",
-  "4": "#00A5DE",
-  "5": "#996CAC",
-  "6": "#CD7C2F",
-  "7": "#747F00",
-  "8": "#E6186C",
-  "9": "#BDB092",
-  "경의중앙": "#77C4A3",
-  "공항": "#4EA4D4",
-  "분당": "#F5A200",
-  "신분당": "#D31145",
-  "경춘": "#0C8E72",
-  "수인": "#F5A200",
-  "우이신설": "#B0CE18",
-  "서해": "#8FC31F",
-  "경강": "#003DA5",
-  "신림": "#6789CA",
+  "1": "#0052A4", "2": "#00A84D", "3": "#EF7C1C", "4": "#00A5DE",
+  "5": "#996CAC", "6": "#CD7C2F", "7": "#747F00", "8": "#E6186C", "9": "#BDB092",
+  "경의중앙": "#77C4A3", "공항": "#4EA4D4", "수인분당": "#F5A200",
+  "신분당": "#D31145", "경춘": "#0C8E72", "우이신설": "#B0CE18",
+  "신림": "#6789CA", "김포골드": "#9DC15D", "GTX-A": "#005EB8",
 };
 
 export const LINE_NAMES: Record<string, string> = {
-  "1": "1호선",
-  "2": "2호선",
-  "3": "3호선",
-  "4": "4호선",
-  "5": "5호선",
-  "6": "6호선",
-  "7": "7호선",
-  "8": "8호선",
-  "9": "9호선",
-  "경의중앙": "경의중앙선",
-  "공항": "공항철도",
-  "분당": "분당선",
-  "신분당": "신분당선",
-  "경춘": "경춘선",
-  "수인": "수인선",
-  "우이신설": "우이신설선",
-  "서해": "서해선",
-  "경강": "경강선",
-  "신림": "신림선",
+  "1": "1호선", "2": "2호선", "3": "3호선", "4": "4호선", "5": "5호선",
+  "6": "6호선", "7": "7호선", "8": "8호선", "9": "9호선",
+  "경의중앙": "경의중앙선", "공항": "공항철도", "수인분당": "수인분당선",
+  "신분당": "신분당선", "경춘": "경춘선", "우이신설": "우이신설선",
+  "신림": "신림선", "김포골드": "김포골드라인", "GTX-A": "GTX-A",
 };
 
 // Graph: station connections for pathfinding
-// Format: { stationName+line: [adjacent stationName+line, ...] }
+// Format: { "stationName::lineNum": [adjacent "stationName::lineNum", ...] }
 export const SUBWAY_GRAPH: Record<string, string[]> = {};
 
-// All stations with their line info
+function s(name: string, lineNumber: string): StationInfo {
+  return {
+    id: `${lineNumber}-${name}`,
+    name,
+    line: LINE_NAMES[lineNumber] || `${lineNumber}호선`,
+    lineNumber,
+    lineColor: LINE_COLORS[lineNumber] || "#888888",
+  };
+}
+
 export const ALL_STATIONS: StationInfo[] = [
-  // 1호선
-  { id: "1-소요산", name: "소요산", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-동두천", name: "동두천", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-보산", name: "보산", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-동두천중앙", name: "동두천중앙", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-지행", name: "지행", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-덕정", name: "덕정", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-덕계", name: "덕계", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-양주", name: "양주", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-녹양", name: "녹양", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-가능", name: "가능", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-의정부", name: "의정부", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-회룡", name: "회룡", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-망월사", name: "망월사", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-도봉산", name: "도봉산", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-도봉", name: "도봉", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-방학", name: "방학", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-창동", name: "창동", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-녹천", name: "녹천", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-월계", name: "월계", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-광운대", name: "광운대", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-석계", name: "석계", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-신이문", name: "신이문", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-외대앞", name: "외대앞", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-회기", name: "회기", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-청량리", name: "청량리", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-제기동", name: "제기동", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-신설동", name: "신설동", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-동묘앞", name: "동묘앞", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-동대문", name: "동대문", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-종로5가", name: "종로5가", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-종로3가", name: "종로3가", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-종각", name: "종각", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-시청", name: "시청", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-서울역", name: "서울역", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-남영", name: "남영", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-용산", name: "용산", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-노량진", name: "노량진", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-대방", name: "대방", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-신길", name: "신길", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-영등포", name: "영등포", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-신도림", name: "신도림", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-구로", name: "구로", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-구일", name: "구일", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-개봉", name: "개봉", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-오류동", name: "오류동", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-온수", name: "온수", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-역곡", name: "역곡", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-소사", name: "소사", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-부천", name: "부천", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-중동", name: "중동", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-송내", name: "송내", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-부개", name: "부개", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-부평", name: "부평", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-백운", name: "백운", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-동암", name: "동암", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-간석", name: "간석", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-주안", name: "주안", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-도화", name: "도화", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-제물포", name: "제물포", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-도원", name: "도원", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-동인천", name: "동인천", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-인천", name: "인천", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  // 1호선 경부선 (서울역 이하)
-  { id: "1-가산디지털단지", name: "가산디지털단지", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-독산", name: "독산", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-금천구청", name: "금천구청", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-석수", name: "석수", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-관악", name: "관악", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-안양", name: "안양", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-명학", name: "명학", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-금정", name: "금정", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-군포", name: "군포", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-당정", name: "당정", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-의왕", name: "의왕", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-성균관대", name: "성균관대", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-화서", name: "화서", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-수원", name: "수원", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-세류", name: "세류", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-병점", name: "병점", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-세마", name: "세마", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-오산대", name: "오산대", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-오산", name: "오산", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-진위", name: "진위", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-송탄", name: "송탄", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-서정리", name: "서정리", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-지제", name: "지제", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-평택", name: "평택", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-성환", name: "성환", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-직산", name: "직산", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-두정", name: "두정", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
-  { id: "1-천안", name: "천안", line: "1호선", lineNumber: "1", lineColor: LINE_COLORS["1"] },
+  // ===== 1호선 =====
+  s("소요산","1"), s("동두천","1"), s("보산","1"), s("동두천중앙","1"), s("지행","1"),
+  s("덕정","1"), s("덕계","1"), s("양주","1"), s("녹양","1"), s("가능","1"),
+  s("의정부","1"), s("회룡","1"), s("망월사","1"), s("도봉산","1"), s("도봉","1"),
+  s("방학","1"), s("창동","1"), s("녹천","1"), s("월계","1"), s("광운대","1"),
+  s("석계","1"), s("신이문","1"), s("외대앞","1"), s("회기","1"), s("청량리","1"),
+  s("제기동","1"), s("신설동","1"), s("동묘앞","1"), s("동대문","1"), s("종로5가","1"),
+  s("종로3가","1"), s("종각","1"), s("시청","1"), s("서울역","1"), s("남영","1"),
+  s("용산","1"), s("노량진","1"), s("대방","1"), s("신길","1"), s("영등포","1"),
+  s("신도림","1"), s("구로","1"), s("구일","1"), s("개봉","1"), s("오류동","1"),
+  s("온수","1"), s("역곡","1"), s("소사","1"), s("부천","1"), s("중동","1"),
+  s("송내","1"), s("부개","1"), s("부평","1"), s("백운","1"), s("동암","1"),
+  s("간석","1"), s("주안","1"), s("도화","1"), s("제물포","1"), s("도원","1"),
+  s("동인천","1"), s("인천","1"),
+  // 1호선 경부선 지선 (구로~천안)
+  s("가산디지털단지","1"), s("독산","1"), s("금천구청","1"), s("석수","1"),
+  s("관악","1"), s("안양","1"), s("명학","1"), s("금정","1"), s("군포","1"),
+  s("당정","1"), s("의왕","1"), s("성균관대","1"), s("화서","1"), s("수원","1"),
+  s("세류","1"), s("병점","1"), s("세마","1"), s("오산대","1"), s("오산","1"),
+  s("진위","1"), s("송탄","1"), s("서정리","1"), s("지제","1"), s("평택","1"),
+  s("성환","1"), s("직산","1"), s("두정","1"), s("천안","1"),
+  // 1호선 장항선 (천안~신창)
+  s("봉명","1"), s("쌍용","1"), s("아산","1"), s("탕정","1"), s("배방","1"),
+  s("온양온천","1"), s("신창","1"),
 
-  // 2호선 (순환선 + 지선)
-  { id: "2-시청", name: "시청", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-을지로입구", name: "을지로입구", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-을지로3가", name: "을지로3가", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-을지로4가", name: "을지로4가", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-동대문역사문화공원", name: "동대문역사문화공원", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-신당", name: "신당", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-상왕십리", name: "상왕십리", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-왕십리", name: "왕십리", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-한양대", name: "한양대", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-뚝섬", name: "뚝섬", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-성수", name: "성수", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-건대입구", name: "건대입구", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-구의", name: "구의", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-강변", name: "강변", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-잠실나루", name: "잠실나루", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-잠실", name: "잠실", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-잠실새내", name: "잠실새내", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-종합운동장", name: "종합운동장", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-삼성", name: "삼성", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-선릉", name: "선릉", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-역삼", name: "역삼", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-강남", name: "강남", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-교대", name: "교대", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-서초", name: "서초", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-방배", name: "방배", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-사당", name: "사당", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-낙성대", name: "낙성대", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-서울대입구", name: "서울대입구", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-봉천", name: "봉천", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-신림", name: "신림", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-신대방", name: "신대방", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-구로디지털단지", name: "구로디지털단지", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-대림", name: "대림", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-신도림", name: "신도림", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-문래", name: "문래", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-영등포구청", name: "영등포구청", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-당산", name: "당산", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-합정", name: "합정", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-홍대입구", name: "홍대입구", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-신촌", name: "신촌", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-이대", name: "이대", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-아현", name: "아현", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
-  { id: "2-충정로", name: "충정로", line: "2호선", lineNumber: "2", lineColor: LINE_COLORS["2"] },
+  // ===== 2호선 =====
+  s("시청","2"), s("을지로입구","2"), s("을지로3가","2"), s("을지로4가","2"),
+  s("동대문역사문화공원","2"), s("신당","2"), s("상왕십리","2"), s("왕십리","2"),
+  s("한양대","2"), s("뚝섬","2"), s("성수","2"), s("건대입구","2"), s("구의","2"),
+  s("강변","2"), s("잠실나루","2"), s("잠실","2"), s("잠실새내","2"),
+  s("종합운동장","2"), s("삼성","2"), s("선릉","2"), s("역삼","2"), s("강남","2"),
+  s("교대","2"), s("서초","2"), s("방배","2"), s("사당","2"), s("낙성대","2"),
+  s("서울대입구","2"), s("봉천","2"), s("신림","2"), s("신대방","2"),
+  s("구로디지털단지","2"), s("대림","2"), s("신도림","2"), s("문래","2"),
+  s("영등포구청","2"), s("당산","2"), s("합정","2"), s("홍대입구","2"),
+  s("신촌","2"), s("이대","2"), s("아현","2"), s("충정로","2"),
+  // 2호선 성수지선
+  s("용답","2"), s("신답","2"), s("용두","2"), s("신설동","2"),
+  // 2호선 신정지선
+  s("까치산","2"), s("신정네거리","2"), s("양천구청","2"), s("도림천","2"),
 
-  // 3호선
-  { id: "3-대화", name: "대화", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-주엽", name: "주엽", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-정발산", name: "정발산", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-마두", name: "마두", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-백석", name: "백석", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-대곡", name: "대곡", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-화정", name: "화정", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-원당", name: "원당", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-원흥", name: "원흥", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-삼송", name: "삼송", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-지축", name: "지축", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-구파발", name: "구파발", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-연신내", name: "연신내", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-불광", name: "불광", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-녹번", name: "녹번", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-홍제", name: "홍제", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-무악재", name: "무악재", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-독립문", name: "독립문", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-경복궁", name: "경복궁", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-안국", name: "안국", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-종로3가", name: "종로3가", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-을지로3가", name: "을지로3가", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-충무로", name: "충무로", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-동대입구", name: "동대입구", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-약수", name: "약수", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-금호", name: "금호", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-옥수", name: "옥수", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-압구정", name: "압구정", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-신사", name: "신사", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-잠원", name: "잠원", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-고속터미널", name: "고속터미널", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-교대", name: "교대", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-남부터미널", name: "남부터미널", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-양재", name: "양재", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-매봉", name: "매봉", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-도곡", name: "도곡", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-대치", name: "대치", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-학여울", name: "학여울", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-대청", name: "대청", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-일원", name: "일원", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-수서", name: "수서", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-가락시장", name: "가락시장", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-경찰병원", name: "경찰병원", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
-  { id: "3-오금", name: "오금", line: "3호선", lineNumber: "3", lineColor: LINE_COLORS["3"] },
+  // ===== 3호선 =====
+  s("대화","3"), s("주엽","3"), s("정발산","3"), s("마두","3"), s("백석","3"),
+  s("대곡","3"), s("화정","3"), s("원당","3"), s("원흥","3"), s("삼송","3"),
+  s("지축","3"), s("구파발","3"), s("연신내","3"), s("불광","3"), s("녹번","3"),
+  s("홍제","3"), s("무악재","3"), s("독립문","3"), s("경복궁","3"), s("안국","3"),
+  s("종로3가","3"), s("을지로3가","3"), s("충무로","3"), s("동대입구","3"),
+  s("약수","3"), s("금호","3"), s("옥수","3"), s("압구정","3"), s("신사","3"),
+  s("잠원","3"), s("고속터미널","3"), s("교대","3"), s("남부터미널","3"),
+  s("양재","3"), s("매봉","3"), s("도곡","3"), s("대치","3"), s("학여울","3"),
+  s("대청","3"), s("일원","3"), s("수서","3"), s("가락시장","3"),
+  s("경찰병원","3"), s("오금","3"),
 
-  // 4호선
-  { id: "4-당고개", name: "당고개", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-상계", name: "상계", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-노원", name: "노원", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-창동", name: "창동", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-쌍문", name: "쌍문", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-수유", name: "수유", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-미아", name: "미아", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-미아사거리", name: "미아사거리", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-길음", name: "길음", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-성신여대입구", name: "성신여대입구", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-한성대입구", name: "한성대입구", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-혜화", name: "혜화", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-동대문", name: "동대문", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-동대문역사문화공원", name: "동대문역사문화공원", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-충무로", name: "충무로", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-명동", name: "명동", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-회현", name: "회현", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-서울역", name: "서울역", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-숙대입구", name: "숙대입구", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-삼각지", name: "삼각지", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-신용산", name: "신용산", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-이촌", name: "이촌", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-동작", name: "동작", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-이수", name: "이수", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-사당", name: "사당", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-남태령", name: "남태령", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-선바위", name: "선바위", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-경마공원", name: "경마공원", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-대공원", name: "대공원", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-과천", name: "과천", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-정부과천청사", name: "정부과천청사", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-인덕원", name: "인덕원", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-평촌", name: "평촌", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-범계", name: "범계", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-금정", name: "금정", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-산본", name: "산본", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-수리산", name: "수리산", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-대야미", name: "대야미", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-반월", name: "반월", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-상록수", name: "상록수", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-한대앞", name: "한대앞", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-중앙", name: "중앙", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-고잔", name: "고잔", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-초지", name: "초지", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-안산", name: "안산", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-신길온천", name: "신길온천", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-정왕", name: "정왕", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
-  { id: "4-오이도", name: "오이도", line: "4호선", lineNumber: "4", lineColor: LINE_COLORS["4"] },
+  // ===== 4호선 =====
+  s("당고개","4"), s("상계","4"), s("노원","4"), s("창동","4"), s("쌍문","4"),
+  s("수유","4"), s("미아","4"), s("미아사거리","4"), s("길음","4"),
+  s("성신여대입구","4"), s("한성대입구","4"), s("혜화","4"), s("동대문","4"),
+  s("동대문역사문화공원","4"), s("충무로","4"), s("명동","4"), s("회현","4"),
+  s("서울역","4"), s("숙대입구","4"), s("삼각지","4"), s("신용산","4"),
+  s("이촌","4"), s("동작","4"), s("이수","4"), s("사당","4"), s("남태령","4"),
+  s("선바위","4"), s("경마공원","4"), s("대공원","4"), s("과천","4"),
+  s("정부과천청사","4"), s("인덕원","4"), s("평촌","4"), s("범계","4"),
+  s("금정","4"), s("산본","4"), s("수리산","4"), s("대야미","4"), s("반월","4"),
+  s("상록수","4"), s("한대앞","4"), s("중앙","4"), s("고잔","4"), s("초지","4"),
+  s("안산","4"), s("신길온천","4"), s("정왕","4"), s("오이도","4"),
 
-  // 5호선
-  { id: "5-방화", name: "방화", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-개화산", name: "개화산", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-김포공항", name: "김포공항", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-송정", name: "송정", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-마곡", name: "마곡", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-발산", name: "발산", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-우장산", name: "우장산", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-화곡", name: "화곡", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-까치산", name: "까치산", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-신정", name: "신정", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-목동", name: "목동", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-오목교", name: "오목교", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-양평", name: "양평", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-영등포구청", name: "영등포구청", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-영등포시장", name: "영등포시장", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-신길", name: "신길", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-여의도", name: "여의도", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-여의나루", name: "여의나루", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-마포", name: "마포", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-공덕", name: "공덕", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-애오개", name: "애오개", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-충정로", name: "충정로", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-서대문", name: "서대문", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-광화문", name: "광화문", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-종로3가", name: "종로3가", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-을지로4가", name: "을지로4가", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-동대문역사문화공원", name: "동대문역사문화공원", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-청구", name: "청구", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-신금호", name: "신금호", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-행당", name: "행당", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-왕십리", name: "왕십리", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-마장", name: "마장", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-답십리", name: "답십리", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-장한평", name: "장한평", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-군자", name: "군자", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-아차산", name: "아차산", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-광나루", name: "광나루", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-천호", name: "천호", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-강동", name: "강동", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-길동", name: "길동", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-굽은다리", name: "굽은다리", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-명일", name: "명일", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-고덕", name: "고덕", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-상일동", name: "상일동", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-둔촌동", name: "둔촌동", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-올림픽공원", name: "올림픽공원", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-방이", name: "방이", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-오금", name: "오금", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-개롱", name: "개롱", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-거여", name: "거여", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
-  { id: "5-마천", name: "마천", line: "5호선", lineNumber: "5", lineColor: LINE_COLORS["5"] },
+  // ===== 5호선 =====
+  s("방화","5"), s("개화산","5"), s("김포공항","5"), s("송정","5"), s("마곡","5"),
+  s("발산","5"), s("우장산","5"), s("화곡","5"), s("까치산","5"), s("신정","5"),
+  s("목동","5"), s("오목교","5"), s("양평","5"), s("영등포구청","5"),
+  s("영등포시장","5"), s("신길","5"), s("여의도","5"), s("여의나루","5"),
+  s("마포","5"), s("공덕","5"), s("애오개","5"), s("충정로","5"),
+  s("서대문","5"), s("광화문","5"), s("종로3가","5"), s("을지로4가","5"),
+  s("동대문역사문화공원","5"), s("청구","5"), s("신금호","5"), s("행당","5"),
+  s("왕십리","5"), s("마장","5"), s("답십리","5"), s("장한평","5"),
+  s("군자","5"), s("아차산","5"), s("광나루","5"), s("천호","5"), s("강동","5"),
+  s("길동","5"), s("굽은다리","5"), s("명일","5"), s("고덕","5"), s("상일동","5"),
+  s("둔촌동","5"), s("올림픽공원","5"), s("방이","5"), s("오금","5"),
+  s("개롱","5"), s("거여","5"), s("마천","5"),
 
-  // 6호선
-  { id: "6-응암", name: "응암", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-역촌", name: "역촌", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-불광", name: "불광", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-독바위", name: "독바위", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-연신내", name: "연신내", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-구산", name: "구산", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-새절", name: "새절", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-증산", name: "증산", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-디지털미디어시티", name: "디지털미디어시티", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-월드컵경기장", name: "월드컵경기장", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-마포구청", name: "마포구청", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-망원", name: "망원", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-합정", name: "합정", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-상수", name: "상수", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-광흥창", name: "광흥창", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-대흥", name: "대흥", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-공덕", name: "공덕", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-효창공원앞", name: "효창공원앞", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-삼각지", name: "삼각지", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-녹사평", name: "녹사평", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-이태원", name: "이태원", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-한강진", name: "한강진", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-버티고개", name: "버티고개", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-약수", name: "약수", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-청구", name: "청구", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-신당", name: "신당", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-동묘앞", name: "동묘앞", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-창신", name: "창신", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-봉화산", name: "봉화산", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-중계", name: "중계", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-하계", name: "하계", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-공릉", name: "공릉", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-태릉입구", name: "태릉입구", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-화랑대", name: "화랑대", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
-  { id: "6-봉화산(2)", name: "봉화산", line: "6호선", lineNumber: "6", lineColor: LINE_COLORS["6"] },
+  // ===== 6호선 =====
+  s("응암","6"), s("역촌","6"), s("불광","6"), s("독바위","6"), s("연신내","6"),
+  s("구산","6"), s("새절","6"), s("증산","6"), s("디지털미디어시티","6"),
+  s("월드컵경기장","6"), s("마포구청","6"), s("망원","6"), s("합정","6"),
+  s("상수","6"), s("광흥창","6"), s("대흥","6"), s("공덕","6"),
+  s("효창공원앞","6"), s("삼각지","6"), s("녹사평","6"), s("이태원","6"),
+  s("한강진","6"), s("버티고개","6"), s("약수","6"), s("청구","6"),
+  s("신당","6"), s("동묘앞","6"), s("창신","6"), s("보문","6"),
+  s("안암","6"), s("고려대","6"), s("월곡","6"), s("상월곡","6"),
+  s("돌곶이","6"), s("석계","6"), s("태릉입구","6"), s("화랑대","6"),
+  s("봉화산","6"), s("신내","6"),
 
-  // 7호선
-  { id: "7-장암", name: "장암", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-도봉산", name: "도봉산", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-수락산", name: "수락산", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-마들", name: "마들", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-노원", name: "노원", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-중계", name: "중계", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-하계", name: "하계", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-공릉", name: "공릉", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-태릉입구", name: "태릉입구", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-먹골", name: "먹골", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-중화", name: "중화", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-상봉", name: "상봉", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-면목", name: "면목", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-사가정", name: "사가정", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-용마산", name: "용마산", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-중곡", name: "중곡", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-군자", name: "군자", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-어린이대공원", name: "어린이대공원", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-건대입구", name: "건대입구", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-뚝섬유원지", name: "뚝섬유원지", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-청담", name: "청담", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-강남구청", name: "강남구청", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-학동", name: "학동", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-논현", name: "논현", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-반포", name: "반포", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-고속터미널", name: "고속터미널", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-내방", name: "내방", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-이수", name: "이수", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-남성", name: "남성", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-숭실대입구", name: "숭실대입구", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-상도", name: "상도", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-장승배기", name: "장승배기", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-신대방삼거리", name: "신대방삼거리", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-보라매", name: "보라매", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-신풍", name: "신풍", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-대림", name: "대림", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-남구로", name: "남구로", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-가산디지털단지", name: "가산디지털단지", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-철산", name: "철산", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-광명사거리", name: "광명사거리", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-천왕", name: "천왕", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-온수", name: "온수", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-까치울", name: "까치울", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-부천종합운동장", name: "부천종합운동장", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-춘의", name: "춘의", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-신중동", name: "신중동", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-부천시청", name: "부천시청", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-상동", name: "상동", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-삼산체육관", name: "삼산체육관", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-굴포천", name: "굴포천", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
-  { id: "7-부평구청", name: "부평구청", line: "7호선", lineNumber: "7", lineColor: LINE_COLORS["7"] },
+  // ===== 7호선 =====
+  s("장암","7"), s("도봉산","7"), s("수락산","7"), s("마들","7"), s("노원","7"),
+  s("중계","7"), s("하계","7"), s("공릉","7"), s("태릉입구","7"), s("먹골","7"),
+  s("중화","7"), s("상봉","7"), s("면목","7"), s("사가정","7"), s("용마산","7"),
+  s("중곡","7"), s("군자","7"), s("어린이대공원","7"), s("건대입구","7"),
+  s("뚝섬유원지","7"), s("청담","7"), s("강남구청","7"), s("학동","7"),
+  s("논현","7"), s("반포","7"), s("고속터미널","7"), s("내방","7"), s("이수","7"),
+  s("남성","7"), s("숭실대입구","7"), s("상도","7"), s("장승배기","7"),
+  s("신대방삼거리","7"), s("보라매","7"), s("신풍","7"), s("대림","7"),
+  s("남구로","7"), s("가산디지털단지","7"), s("철산","7"), s("광명사거리","7"),
+  s("천왕","7"), s("온수","7"), s("까치울","7"), s("부천종합운동장","7"),
+  s("춘의","7"), s("신중동","7"), s("부천시청","7"), s("상동","7"),
+  s("삼산체육관","7"), s("굴포천","7"), s("부평구청","7"),
 
-  // 8호선
-  { id: "8-암사", name: "암사", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-천호", name: "천호", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-강동구청", name: "강동구청", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-몽촌토성", name: "몽촌토성", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-잠실", name: "잠실", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-석촌", name: "석촌", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-송파", name: "송파", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-가락시장", name: "가락시장", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-문정", name: "문정", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-장지", name: "장지", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-복정", name: "복정", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-남위례", name: "남위례", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-산성", name: "산성", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-남한산성입구", name: "남한산성입구", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-단대오거리", name: "단대오거리", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-신흥", name: "신흥", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-수진", name: "수진", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
-  { id: "8-모란", name: "모란", line: "8호선", lineNumber: "8", lineColor: LINE_COLORS["8"] },
+  // ===== 8호선 =====
+  s("암사","8"), s("천호","8"), s("강동구청","8"), s("몽촌토성","8"),
+  s("잠실","8"), s("석촌","8"), s("송파","8"), s("가락시장","8"), s("문정","8"),
+  s("장지","8"), s("복정","8"), s("남위례","8"), s("산성","8"),
+  s("남한산성입구","8"), s("단대오거리","8"), s("신흥","8"), s("수진","8"),
+  s("모란","8"),
 
-  // 9호선
-  { id: "9-개화", name: "개화", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-김포공항", name: "김포공항", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-공항시장", name: "공항시장", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-신방화", name: "신방화", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-마곡나루", name: "마곡나루", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-양천향교", name: "양천향교", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-가양", name: "가양", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-증미", name: "증미", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-등촌", name: "등촌", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-염창", name: "염창", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-신목동", name: "신목동", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-선유도", name: "선유도", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-당산", name: "당산", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-국회의사당", name: "국회의사당", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-여의도", name: "여의도", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-샛강", name: "샛강", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-노량진", name: "노량진", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-노들", name: "노들", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-흑석", name: "흑석", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-동작", name: "동작", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-구반포", name: "구반포", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-신반포", name: "신반포", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-고속터미널", name: "고속터미널", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-사평", name: "사평", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-신논현", name: "신논현", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-언주", name: "언주", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-선정릉", name: "선정릉", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-삼성중앙", name: "삼성중앙", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-봉은사", name: "봉은사", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-종합운동장", name: "종합운동장", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-삼전", name: "삼전", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-석촌고분", name: "석촌고분", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-석촌", name: "석촌", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-송파나루", name: "송파나루", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-한성백제", name: "한성백제", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-올림픽공원", name: "올림픽공원", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-둔촌오륜", name: "둔촌오륜", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
-  { id: "9-중앙보훈병원", name: "중앙보훈병원", line: "9호선", lineNumber: "9", lineColor: LINE_COLORS["9"] },
+  // ===== 9호선 =====
+  s("개화","9"), s("김포공항","9"), s("공항시장","9"), s("신방화","9"),
+  s("마곡나루","9"), s("양천향교","9"), s("가양","9"), s("증미","9"),
+  s("등촌","9"), s("염창","9"), s("신목동","9"), s("선유도","9"),
+  s("당산","9"), s("국회의사당","9"), s("여의도","9"), s("샛강","9"),
+  s("노량진","9"), s("노들","9"), s("흑석","9"), s("동작","9"),
+  s("구반포","9"), s("신반포","9"), s("고속터미널","9"), s("사평","9"),
+  s("신논현","9"), s("언주","9"), s("선정릉","9"), s("삼성중앙","9"),
+  s("봉은사","9"), s("종합운동장","9"), s("삼전","9"), s("석촌고분","9"),
+  s("석촌","9"), s("송파나루","9"), s("한성백제","9"), s("올림픽공원","9"),
+  s("둔촌오륜","9"), s("중앙보훈병원","9"),
+
+  // ===== 경의중앙선 =====
+  s("문산","경의중앙"), s("운천","경의중앙"), s("임진강","경의중앙"),
+  s("금촌","경의중앙"), s("금릉","경의중앙"), s("능곡","경의중앙"),
+  s("대곡","경의중앙"), s("곡산","경의중앙"), s("화전","경의중앙"),
+  s("강매","경의중앙"), s("행신","경의중앙"), s("능곡","경의중앙"),
+  s("디지털미디어시티","경의중앙"), s("수색","경의중앙"), s("가좌","경의중앙"),
+  s("홍대입구","경의중앙"), s("서강대","경의중앙"), s("공덕","경의중앙"),
+  s("서울역","경의중앙"), s("효창공원앞","경의중앙"), s("용산","경의중앙"),
+  s("이촌","경의중앙"), s("서빙고","경의중앙"), s("한남","경의중앙"),
+  s("옥수","경의중앙"), s("응봉","경의중앙"), s("왕십리","경의중앙"),
+  s("청량리","경의중앙"), s("회기","경의중앙"), s("중랑","경의중앙"),
+  s("상봉","경의중앙"), s("망우","경의중앙"), s("양원","경의중앙"),
+  s("구리","경의중앙"), s("도농","경의중앙"), s("양정","경의중앙"),
+  s("덕소","경의중앙"), s("도심","경의중앙"), s("팔당","경의중앙"),
+  s("운길산","경의중앙"), s("양수","경의중앙"), s("신원","경의중앙"),
+  s("국수","경의중앙"), s("아신","경의중앙"), s("오빈","경의중앙"),
+  s("양평","경의중앙"), s("원덕","경의중앙"), s("용문","경의중앙"),
+  s("지평","경의중앙"),
+
+  // ===== 공항철도 =====
+  s("서울역","공항"), s("공덕","공항"), s("홍대입구","공항"),
+  s("디지털미디어시티","공항"), s("마곡나루","공항"), s("김포공항","공항"),
+  s("계양","공항"), s("검암","공항"), s("청라국제도시","공항"),
+  s("영종","공항"), s("운서","공항"), s("공항화물청사","공항"),
+  s("인천공항1터미널","공항"), s("인천공항2터미널","공항"),
+
+  // ===== 수인분당선 =====
+  s("청량리","수인분당"), s("왕십리","수인분당"), s("서울숲","수인분당"),
+  s("압구정로데오","수인분당"), s("강남구청","수인분당"), s("선릉","수인분당"),
+  s("한티","수인분당"), s("도곡","수인분당"), s("구룡","수인분당"),
+  s("개포동","수인분당"), s("대모산입구","수인분당"), s("수서","수인분당"),
+  s("복정","수인분당"), s("가천대","수인분당"), s("태평","수인분당"),
+  s("모란","수인분당"), s("야탑","수인분당"), s("이매","수인분당"),
+  s("서현","수인분당"), s("수내","수인분당"), s("정자","수인분당"),
+  s("미금","수인분당"), s("오리","수인분당"), s("죽전","수인분당"),
+  s("보정","수인분당"), s("구성","수인분당"), s("신갈","수인분당"),
+  s("기흥","수인분당"), s("상갈","수인분당"), s("청명","수인분당"),
+  s("영통","수인분당"), s("망포","수인분당"), s("수원시청","수인분당"),
+  s("매탄권선","수인분당"), s("수원","수인분당"), s("고색","수인분당"),
+  s("오목천","수인분당"), s("어천","수인분당"), s("야목","수인분당"),
+  s("사리","수인분당"), s("한대앞","수인분당"), s("중앙","수인분당"),
+  s("고잔","수인분당"), s("초지","수인분당"), s("안산","수인분당"),
+  s("신길온천","수인분당"), s("정왕","수인분당"), s("오이도","수인분당"),
+  s("달월","수인분당"), s("월곶","수인분당"), s("소래포구","수인분당"),
+  s("인천논현","수인분당"), s("호구포","수인분당"), s("남동인더스파크","수인분당"),
+  s("원인재","수인분당"), s("연수","수인분당"), s("송도","수인분당"),
+  s("인하대","수인분당"), s("숭의","수인분당"), s("신포","수인분당"),
+  s("인천","수인분당"),
+
+  // ===== 신분당선 =====
+  s("신사","신분당"), s("논현","신분당"), s("신논현","신분당"),
+  s("강남","신분당"), s("양재","신분당"), s("양재시민의숲","신분당"),
+  s("청계산입구","신분당"), s("판교","신분당"), s("정자","신분당"),
+  s("미금","신분당"), s("동천","신분당"), s("수지구청","신분당"),
+  s("성복","신분당"), s("상현","신분당"), s("광교중앙","신분당"), s("광교","신분당"),
+
+  // ===== 경춘선 =====
+  s("청량리","경춘"), s("회기","경춘"), s("중랑","경춘"), s("상봉","경춘"),
+  s("망우","경춘"), s("갈매","경춘"), s("별내","경춘"), s("퇴계원","경춘"),
+  s("사릉","경춘"), s("금곡","경춘"), s("평내호평","경춘"), s("천마산","경춘"),
+  s("마석","경춘"), s("대성리","경춘"), s("청평","경춘"), s("상천","경춘"),
+  s("가평","경춘"), s("굴봉산","경춘"), s("백양리","경춘"), s("강촌","경춘"),
+  s("김유정","경춘"), s("남춘천","경춘"), s("춘천","경춘"),
+
+  // ===== 우이신설선 =====
+  s("북한산우이","우이신설"), s("솔밭공원","우이신설"),
+  s("4.19민주묘지","우이신설"), s("가오리","우이신설"), s("화계","우이신설"),
+  s("삼양","우이신설"), s("삼양사거리","우이신설"), s("솔샘","우이신설"),
+  s("북한산보국문","우이신설"), s("정릉","우이신설"),
+  s("성신여대입구","우이신설"), s("보문","우이신설"), s("신설동","우이신설"),
+
+  // ===== 신림선 =====
+  s("관악산","신림"), s("서울대벤처타운","신림"), s("서울대입구(관악구청)","신림"),
+  s("낙성대","신림"), s("사당","신림"), s("보라매","신림"),
+  s("보라매병원","신림"), s("대방","신림"), s("여의대방로","신림"), s("샛강","신림"),
+
+  // ===== 김포골드라인 =====
+  s("양촌","김포골드"), s("구래","김포골드"), s("마산","김포골드"),
+  s("장기","김포골드"), s("운양","김포골드"), s("걸포북변","김포골드"),
+  s("사우(김포시청)","김포골드"), s("풍무","김포골드"),
+  s("고촌","김포골드"), s("김포공항","김포골드"),
+
+  // ===== GTX-A =====
+  s("파주운정","GTX-A"), s("야당","GTX-A"), s("능곡","GTX-A"),
+  s("대곡","GTX-A"), s("창릉","GTX-A"), s("연신내","GTX-A"),
+  s("서울역","GTX-A"), s("수서","GTX-A"), s("성남","GTX-A"), s("동탄","GTX-A"),
 ];
 
-// Build the subway graph for pathfinding
-// Line 1 sequential connections
-const line1Stations = [
-  "소요산","동두천","보산","동두천중앙","지행","덕정","덕계","양주","녹양","가능","의정부","회룡","망월사",
-  "도봉산","도봉","방학","창동","녹천","월계","광운대","석계","신이문","외대앞","회기","청량리",
-  "제기동","신설동","동묘앞","동대문","종로5가","종로3가","종각","시청","서울역","남영","용산","노량진",
-  "대방","신길","영등포","신도림","구로","구일","개봉","오류동","온수","역곡","소사","부천","중동","송내","부개","부평","백운","동암","간석","주안","도화","제물포","도원","동인천","인천"
+// ============================
+// Line sequences for pathfinding
+// ============================
+
+const line1Main = [
+  "소요산","동두천","보산","동두천중앙","지행","덕정","덕계","양주","녹양","가능",
+  "의정부","회룡","망월사","도봉산","도봉","방학","창동","녹천","월계","광운대",
+  "석계","신이문","외대앞","회기","청량리","제기동","신설동","동묘앞","동대문",
+  "종로5가","종로3가","종각","시청","서울역","남영","용산","노량진","대방","신길",
+  "영등포","신도림","구로","구일","개봉","오류동","온수","역곡","소사","부천","중동",
+  "송내","부개","부평","백운","동암","간석","주안","도화","제물포","도원","동인천","인천"
 ];
-// 경부선 분기 (구로 -> 가산디지털단지)
-const line1Branch = [
-  "구로","가산디지털단지","독산","금천구청","석수","관악","안양","명학","금정","군포","당정","의왕","성균관대","화서","수원","세류","병점","세마","오산대","오산","진위","송탄","서정리","지제","평택","성환","직산","두정","천안"
+const line1KyeongBu = [
+  "구로","가산디지털단지","독산","금천구청","석수","관악","안양","명학","금정",
+  "군포","당정","의왕","성균관대","화서","수원","세류","병점","세마","오산대","오산",
+  "진위","송탄","서정리","지제","평택","성환","직산","두정","천안"
+];
+const line1Janghang = ["천안","봉명","쌍용","아산","탕정","배방","온양온천","신창"];
+
+const line2Circular = [
+  "시청","을지로입구","을지로3가","을지로4가","동대문역사문화공원","신당","상왕십리",
+  "왕십리","한양대","뚝섬","성수","건대입구","구의","강변","잠실나루","잠실","잠실새내",
+  "종합운동장","삼성","선릉","역삼","강남","교대","서초","방배","사당","낙성대",
+  "서울대입구","봉천","신림","신대방","구로디지털단지","대림","신도림","문래",
+  "영등포구청","당산","합정","홍대입구","신촌","이대","아현","충정로"
+];
+const line2Seongsu = ["성수","용답","신답","용두","신설동"];
+const line2Sinjeong = ["신도림","도림천","양천구청","신정네거리","까치산"];
+
+const line3 = [
+  "대화","주엽","정발산","마두","백석","대곡","화정","원당","원흥","삼송","지축",
+  "구파발","연신내","불광","녹번","홍제","무악재","독립문","경복궁","안국","종로3가",
+  "을지로3가","충무로","동대입구","약수","금호","옥수","압구정","신사","잠원",
+  "고속터미널","교대","남부터미널","양재","매봉","도곡","대치","학여울","대청",
+  "일원","수서","가락시장","경찰병원","오금"
 ];
 
-// Line 2 (circular line)
-const line2Stations = [
-  "시청","을지로입구","을지로3가","을지로4가","동대문역사문화공원","신당","상왕십리","왕십리","한양대","뚝섬","성수",
-  "건대입구","구의","강변","잠실나루","잠실","잠실새내","종합운동장","삼성","선릉","역삼","강남","교대","서초","방배","사당","낙성대","서울대입구","봉천","신림","신대방","구로디지털단지","대림","신도림","문래","영등포구청","당산","합정","홍대입구","신촌","이대","아현","충정로"
+const line4 = [
+  "당고개","상계","노원","창동","쌍문","수유","미아","미아사거리","길음",
+  "성신여대입구","한성대입구","혜화","동대문","동대문역사문화공원","충무로","명동",
+  "회현","서울역","숙대입구","삼각지","신용산","이촌","동작","이수","사당",
+  "남태령","선바위","경마공원","대공원","과천","정부과천청사","인덕원","평촌","범계",
+  "금정","산본","수리산","대야미","반월","상록수","한대앞","중앙","고잔","초지",
+  "안산","신길온천","정왕","오이도"
 ];
 
-// Line 3
-const line3Stations = [
-  "대화","주엽","정발산","마두","백석","대곡","화정","원당","원흥","삼송","지축","구파발","연신내","불광","녹번","홍제","무악재","독립문","경복궁","안국","종로3가","을지로3가","충무로","동대입구","약수","금호","옥수","압구정","신사","잠원","고속터미널","교대","남부터미널","양재","매봉","도곡","대치","학여울","대청","일원","수서","가락시장","경찰병원","오금"
-];
-
-// Line 4
-const line4Stations = [
-  "당고개","상계","노원","창동","쌍문","수유","미아","미아사거리","길음","성신여대입구","한성대입구","혜화","동대문","동대문역사문화공원","충무로","명동","회현","서울역","숙대입구","삼각지","신용산","이촌","동작","이수","사당","남태령","선바위","경마공원","대공원","과천","정부과천청사","인덕원","평촌","범계","금정","산본","수리산","대야미","반월","상록수","한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도"
-];
-
-// Line 5 (two branches at Gangdong)
-const line5StationsMain = [
-  "방화","개화산","김포공항","송정","마곡","발산","우장산","화곡","까치산","신정","목동","오목교","양평","영등포구청","영등포시장","신길","여의도","여의나루","마포","공덕","애오개","충정로","서대문","광화문","종로3가","을지로4가","동대문역사문화공원","청구","신금호","행당","왕십리","마장","답십리","장한평","군자","아차산","광나루","천호","강동"
+const line5Main = [
+  "방화","개화산","김포공항","송정","마곡","발산","우장산","화곡","까치산","신정",
+  "목동","오목교","양평","영등포구청","영등포시장","신길","여의도","여의나루","마포",
+  "공덕","애오개","충정로","서대문","광화문","종로3가","을지로4가",
+  "동대문역사문화공원","청구","신금호","행당","왕십리","마장","답십리","장한평",
+  "군자","아차산","광나루","천호","강동"
 ];
 const line5BranchA = ["강동","길동","굽은다리","명일","고덕","상일동"];
 const line5BranchB = ["강동","둔촌동","올림픽공원","방이","오금","개롱","거여","마천"];
 
-// Line 6
-const line6Stations = [
-  "응암","역촌","불광","독바위","연신내","구산","새절","증산","디지털미디어시티","월드컵경기장","마포구청","망원","합정","상수","광흥창","대흥","공덕","효창공원앞","삼각지","녹사평","이태원","한강진","버티고개","약수","청구","신당","동묘앞","창신","봉화산","중계","하계","공릉","태릉입구","화랑대"
+const line6 = [
+  "응암","역촌","불광","독바위","연신내","구산","새절","증산","디지털미디어시티",
+  "월드컵경기장","마포구청","망원","합정","상수","광흥창","대흥","공덕","효창공원앞",
+  "삼각지","녹사평","이태원","한강진","버티고개","약수","청구","신당","동묘앞","창신",
+  "보문","안암","고려대","월곡","상월곡","돌곶이","석계","태릉입구","화랑대","봉화산","신내"
 ];
 
-// Line 7
-const line7Stations = [
-  "장암","도봉산","수락산","마들","노원","중계","하계","공릉","태릉입구","먹골","중화","상봉","면목","사가정","용마산","중곡","군자","어린이대공원","건대입구","뚝섬유원지","청담","강남구청","학동","논현","반포","고속터미널","내방","이수","남성","숭실대입구","상도","장승배기","신대방삼거리","보라매","신풍","대림","남구로","가산디지털단지","철산","광명사거리","천왕","온수","까치울","부천종합운동장","춘의","신중동","부천시청","상동","삼산체육관","굴포천","부평구청"
+const line7 = [
+  "장암","도봉산","수락산","마들","노원","중계","하계","공릉","태릉입구","먹골",
+  "중화","상봉","면목","사가정","용마산","중곡","군자","어린이대공원","건대입구",
+  "뚝섬유원지","청담","강남구청","학동","논현","반포","고속터미널","내방","이수",
+  "남성","숭실대입구","상도","장승배기","신대방삼거리","보라매","신풍","대림",
+  "남구로","가산디지털단지","철산","광명사거리","천왕","온수","까치울","부천종합운동장",
+  "춘의","신중동","부천시청","상동","삼산체육관","굴포천","부평구청"
 ];
 
-// Line 8
-const line8Stations = [
-  "암사","천호","강동구청","몽촌토성","잠실","석촌","송파","가락시장","문정","장지","복정","남위례","산성","남한산성입구","단대오거리","신흥","수진","모란"
+const line8 = [
+  "암사","천호","강동구청","몽촌토성","잠실","석촌","송파","가락시장","문정","장지",
+  "복정","남위례","산성","남한산성입구","단대오거리","신흥","수진","모란"
 ];
 
-// Line 9
-const line9Stations = [
-  "개화","김포공항","공항시장","신방화","마곡나루","양천향교","가양","증미","등촌","염창","신목동","선유도","당산","국회의사당","여의도","샛강","노량진","노들","흑석","동작","구반포","신반포","고속터미널","사평","신논현","언주","선정릉","삼성중앙","봉은사","종합운동장","삼전","석촌고분","석촌","송파나루","한성백제","올림픽공원","둔촌오륜","중앙보훈병원"
+const line9 = [
+  "개화","김포공항","공항시장","신방화","마곡나루","양천향교","가양","증미","등촌",
+  "염창","신목동","선유도","당산","국회의사당","여의도","샛강","노량진","노들","흑석",
+  "동작","구반포","신반포","고속터미널","사평","신논현","언주","선정릉","삼성중앙",
+  "봉은사","종합운동장","삼전","석촌고분","석촌","송파나루","한성백제","올림픽공원",
+  "둔촌오륜","중앙보훈병원"
 ];
 
-// Helper to add graph edges
+const lineGyeongui = [
+  "문산","운천","임진강","금촌","금릉","능곡","대곡","곡산","화전","강매","행신",
+  "수색","디지털미디어시티","가좌","홍대입구","서강대","공덕","서울역","효창공원앞",
+  "용산","이촌","서빙고","한남","옥수","응봉","왕십리","청량리","회기","중랑","상봉",
+  "망우","양원","구리","도농","양정","덕소","도심","팔당","운길산","양수","신원",
+  "국수","아신","오빈","양평","원덕","용문","지평"
+];
+
+const lineAirport = [
+  "서울역","공덕","홍대입구","디지털미디어시티","마곡나루","김포공항","계양","검암",
+  "청라국제도시","영종","운서","공항화물청사","인천공항1터미널","인천공항2터미널"
+];
+
+const lineSuinBundang = [
+  "청량리","왕십리","서울숲","압구정로데오","강남구청","선릉","한티","도곡","구룡",
+  "개포동","대모산입구","수서","복정","가천대","태평","모란","야탑","이매","서현",
+  "수내","정자","미금","오리","죽전","보정","구성","신갈","기흥","상갈","청명",
+  "영통","망포","수원시청","매탄권선","수원","고색","오목천","어천","야목","사리",
+  "한대앞","중앙","고잔","초지","안산","신길온천","정왕","오이도","달월","월곶",
+  "소래포구","인천논현","호구포","남동인더스파크","원인재","연수","송도","인하대",
+  "숭의","신포","인천"
+];
+
+const lineSinBundang = [
+  "신사","논현","신논현","강남","양재","양재시민의숲","청계산입구","판교","정자",
+  "미금","동천","수지구청","성복","상현","광교중앙","광교"
+];
+
+const lineGyeongChun = [
+  "청량리","회기","중랑","상봉","망우","갈매","별내","퇴계원","사릉","금곡",
+  "평내호평","천마산","마석","대성리","청평","상천","가평","굴봉산","백양리",
+  "강촌","김유정","남춘천","춘천"
+];
+
+const lineUi = [
+  "북한산우이","솔밭공원","4.19민주묘지","가오리","화계","삼양","삼양사거리",
+  "솔샘","북한산보국문","정릉","성신여대입구","보문","신설동"
+];
+
+const lineSinlim = [
+  "관악산","서울대벤처타운","서울대입구(관악구청)","낙성대","사당","보라매",
+  "보라매병원","대방","여의대방로","샛강"
+];
+
+const lineGimpo = [
+  "양촌","구래","마산","장기","운양","걸포북변","사우(김포시청)","풍무","고촌","김포공항"
+];
+
+const lineGTXA = [
+  "파주운정","야당","능곡","대곡","창릉","연신내","서울역","수서","성남","동탄"
+];
+
+// ============================
+// Graph building
+// ============================
+
 function addEdge(a: string, b: string) {
   if (!SUBWAY_GRAPH[a]) SUBWAY_GRAPH[a] = [];
   if (!SUBWAY_GRAPH[b]) SUBWAY_GRAPH[b] = [];
@@ -564,144 +404,181 @@ function addEdge(a: string, b: string) {
 
 function addLineEdges(stations: string[], lineNum: string) {
   for (let i = 0; i < stations.length - 1; i++) {
-    addEdge(`${stations[i]}::${lineNum}`, `${stations[i+1]}::${lineNum}`);
+    addEdge(`${stations[i]}::${lineNum}`, `${stations[i + 1]}::${lineNum}`);
   }
 }
 
-// Add line connections
-addLineEdges(line1Stations, "1");
-addLineEdges(line1Branch, "1");
-addLineEdges(line2Stations, "2");
-// 2호선 is circular: connect last to first
-addEdge(`충정로::2`, `시청::2`);
-addLineEdges(line3Stations, "3");
-addLineEdges(line4Stations, "4");
-addLineEdges(line5StationsMain, "5");
+addLineEdges(line1Main, "1");
+addLineEdges(line1KyeongBu, "1");
+addLineEdges(line1Janghang, "1");
+addLineEdges(line2Circular, "2");
+addEdge("충정로::2", "시청::2"); // 2호선 순환
+addLineEdges(line2Seongsu, "2");
+addLineEdges(line2Sinjeong, "2");
+addLineEdges(line3, "3");
+addLineEdges(line4, "4");
+addLineEdges(line5Main, "5");
 addLineEdges(line5BranchA, "5");
 addLineEdges(line5BranchB, "5");
-addLineEdges(line6Stations, "6");
-// 6호선 loop
-addEdge(`응암::6`, `화랑대::6`);
-addLineEdges(line7Stations, "7");
-addLineEdges(line8Stations, "8");
-addLineEdges(line9Stations, "9");
+addLineEdges(line6, "6");
+addEdge("응암::6", "신내::6"); // 6호선 루프
+addLineEdges(line7, "7");
+addLineEdges(line8, "8");
+addLineEdges(line9, "9");
+addLineEdges(lineGyeongui, "경의중앙");
+addLineEdges(lineAirport, "공항");
+addLineEdges(lineSuinBundang, "수인분당");
+addLineEdges(lineSinBundang, "신분당");
+addLineEdges(lineGyeongChun, "경춘");
+addLineEdges(lineUi, "우이신설");
+addLineEdges(lineSinlim, "신림");
+addLineEdges(lineGimpo, "김포골드");
+addLineEdges(lineGTXA, "GTX-A");
 
-// Add transfer connections (same station, different lines)
-const TRANSFER_STATIONS: Array<[string, string][]> = [
-  // 시청 1,2
-  [["시청","1"],["시청","2"]],
-  // 종로3가 1,3,5
-  [["종로3가","1"],["종로3가","3"]],
-  [["종로3가","1"],["종로3가","5"]],
-  [["종로3가","3"],["종로3가","5"]],
-  // 동대문 1,4
-  [["동대문","1"],["동대문","4"]],
-  // 서울역 1,4
-  [["서울역","1"],["서울역","4"]],
-  // 신도림 1,2
-  [["신도림","1"],["신도림","2"]],
-  // 창동 1,4
-  [["창동","1"],["창동","4"]],
-  // 을지로3가 2,3
-  [["을지로3가","2"],["을지로3가","3"]],
-  // 을지로4가 2,5
-  [["을지로4가","2"],["을지로4가","5"]],
-  // 동대문역사문화공원 2,4,5
-  [["동대문역사문화공원","2"],["동대문역사문화공원","4"]],
-  [["동대문역사문화공원","2"],["동대문역사문화공원","5"]],
-  [["동대문역사문화공원","4"],["동대문역사문화공원","5"]],
-  // 충정로 2,5
-  [["충정로","2"],["충정로","5"]],
-  // 왕십리 2,5
-  [["왕십리","2"],["왕십리","5"]],
-  // 성수 2 branch (not needed for main)
-  // 교대 2,3
-  [["교대","2"],["교대","3"]],
-  // 사당 2,4
-  [["사당","2"],["사당","4"]],
-  // 고속터미널 3,7,9
-  [["고속터미널","3"],["고속터미널","7"]],
-  [["고속터미널","3"],["고속터미널","9"]],
-  [["고속터미널","7"],["고속터미널","9"]],
-  // 충무로 3,4
-  [["충무로","3"],["충무로","4"]],
-  // 약수 3,6
-  [["약수","3"],["약수","6"]],
-  // 이수 4,7
-  [["이수","4"],["이수","7"]],
-  // 동작 4,9
-  [["동작","4"],["동작","9"]],
-  // 삼각지 4,6
-  [["삼각지","4"],["삼각지","6"]],
-  // 공덕 5,6
-  [["공덕","5"],["공덕","6"]],
-  // 신당 2,6
-  [["신당","2"],["신당","6"]],
-  // 동묘앞 1,6
-  [["동묘앞","1"],["동묘앞","6"]],
-  // 청구 5,6
-  [["청구","5"],["청구","6"]],
-  // 군자 5,7
-  [["군자","5"],["군자","7"]],
-  // 건대입구 2,7
-  [["건대입구","2"],["건대입구","7"]],
-  // 천호 5,8
-  [["천호","5"],["천호","8"]],
-  // 합정 2,6
-  [["합정","2"],["합정","6"]],
-  // 강동 5,8 (via 가락시장 indirect - separate)
-  // 노원 4,7
-  [["노원","4"],["노원","7"]],
-  // 도봉산 1,7
-  [["도봉산","1"],["도봉산","7"]],
-  // 태릉입구 6,7
-  [["태릉입구","6"],["태릉입구","7"]],
-  // 잠실 2,8
-  [["잠실","2"],["잠실","8"]],
-  // 가락시장 3,8
-  [["가락시장","3"],["가락시장","8"]],
-  // 대림 2,7
-  [["대림","2"],["대림","7"]],
-  // 당산 2,9
-  [["당산","2"],["당산","9"]],
-  // 여의도 5,9
-  [["여의도","5"],["여의도","9"]],
-  // 노량진 1,9
-  [["노량진","1"],["노량진","9"]],
-  // 종합운동장 2,9
-  [["종합운동장","2"],["종합운동장","9"]],
-  // 석촌 8,9
-  [["석촌","8"],["석촌","9"]],
-  // 가산디지털단지 1,7
-  [["가산디지털단지","1"],["가산디지털단지","7"]],
-  // 김포공항 5,9
-  [["김포공항","5"],["김포공항","9"]],
-  // 온수 1,7
-  [["온수","1"],["온수","7"]],
+// ============================
+// Transfer connections
+// ============================
+
+const TRANSFER_PAIRS: Array<[string, string, string, string]> = [
+  // [stationA, lineA, stationB, lineB] — always same station name
+  ["시청","1","시청","2"],
+  ["서울역","1","서울역","4"],
+  ["서울역","1","서울역","경의중앙"],
+  ["서울역","4","서울역","경의중앙"],
+  ["서울역","1","서울역","공항"],
+  ["서울역","4","서울역","공항"],
+  ["서울역","경의중앙","서울역","공항"],
+  ["서울역","1","서울역","GTX-A"],
+  ["서울역","GTX-A","서울역","공항"],
+  ["창동","1","창동","4"],
+  ["동대문","1","동대문","4"],
+  ["신도림","1","신도림","2"],
+  ["구로","1","구로","1"],
+  ["동묘앞","1","동묘앞","6"],
+  ["도봉산","1","도봉산","7"],
+  ["가산디지털단지","1","가산디지털단지","7"],
+  ["온수","1","온수","7"],
+  ["노량진","1","노량진","9"],
+  ["종로3가","1","종로3가","3"],
+  ["종로3가","1","종로3가","5"],
+  ["종로3가","3","종로3가","5"],
+  ["을지로3가","2","을지로3가","3"],
+  ["을지로4가","2","을지로4가","5"],
+  ["동대문역사문화공원","2","동대문역사문화공원","4"],
+  ["동대문역사문화공원","2","동대문역사문화공원","5"],
+  ["동대문역사문화공원","4","동대문역사문화공원","5"],
+  ["충정로","2","충정로","5"],
+  ["왕십리","2","왕십리","5"],
+  ["왕십리","2","왕십리","경의중앙"],
+  ["왕십리","5","왕십리","경의중앙"],
+  ["왕십리","2","왕십리","수인분당"],
+  ["왕십리","수인분당","왕십리","경의중앙"],
+  ["신당","2","신당","6"],
+  ["교대","2","교대","3"],
+  ["사당","2","사당","4"],
+  ["합정","2","합정","6"],
+  ["홍대입구","2","홍대입구","경의중앙"],
+  ["홍대입구","2","홍대입구","공항"],
+  ["홍대입구","경의중앙","홍대입구","공항"],
+  ["당산","2","당산","9"],
+  ["종합운동장","2","종합운동장","9"],
+  ["건대입구","2","건대입구","7"],
+  ["신설동","2","신설동","우이신설"],
+  ["대림","2","대림","7"],
+  ["잠실","2","잠실","8"],
+  ["선릉","2","선릉","수인분당"],
+  ["충무로","3","충무로","4"],
+  ["약수","3","약수","6"],
+  ["고속터미널","3","고속터미널","7"],
+  ["고속터미널","3","고속터미널","9"],
+  ["고속터미널","7","고속터미널","9"],
+  ["가락시장","3","가락시장","8"],
+  ["수서","3","수서","GTX-A"],
+  ["수서","3","수서","수인분당"],
+  ["수서","GTX-A","수서","수인분당"],
+  ["노원","4","노원","7"],
+  ["삼각지","4","삼각지","6"],
+  ["동작","4","동작","9"],
+  ["이수","4","이수","7"],
+  ["사당","4","사당","신림"],
+  ["이촌","4","이촌","경의중앙"],
+  ["오이도","4","오이도","수인분당"],
+  ["인덕원","4","인덕원","수인분당"],
+  ["공덕","5","공덕","6"],
+  ["공덕","5","공덕","경의중앙"],
+  ["공덕","6","공덕","경의중앙"],
+  ["공덕","5","공덕","공항"],
+  ["공덕","공항","공덕","경의중앙"],
+  ["청구","5","청구","6"],
+  ["군자","5","군자","7"],
+  ["천호","5","천호","8"],
+  ["여의도","5","여의도","9"],
+  ["김포공항","5","김포공항","9"],
+  ["김포공항","5","김포공항","공항"],
+  ["김포공항","9","김포공항","공항"],
+  ["김포공항","5","김포공항","김포골드"],
+  ["김포공항","9","김포공항","김포골드"],
+  ["김포공항","공항","김포공항","김포골드"],
+  ["디지털미디어시티","6","디지털미디어시티","경의중앙"],
+  ["디지털미디어시티","6","디지털미디어시티","공항"],
+  ["디지털미디어시티","경의중앙","디지털미디어시티","공항"],
+  ["효창공원앞","6","효창공원앞","경의중앙"],
+  ["석계","6","석계","1"],
+  ["태릉입구","6","태릉입구","7"],
+  ["성신여대입구","4","성신여대입구","우이신설"],
+  ["보문","6","보문","우이신설"],
+  ["상봉","7","상봉","경의중앙"],
+  ["상봉","7","상봉","경춘"],
+  ["상봉","경의중앙","상봉","경춘"],
+  ["석촌","8","석촌","9"],
+  ["복정","8","복정","수인분당"],
+  ["모란","8","모란","수인분당"],
+  ["강남","2","강남","신분당"],
+  ["신논현","9","신논현","신분당"],
+  ["논현","7","논현","신분당"],
+  ["정자","수인분당","정자","신분당"],
+  ["미금","수인분당","미금","신분당"],
+  ["청량리","1","청량리","경의중앙"],
+  ["청량리","1","청량리","경춘"],
+  ["청량리","1","청량리","수인분당"],
+  ["청량리","경의중앙","청량리","경춘"],
+  ["청량리","경의중앙","청량리","수인분당"],
+  ["청량리","경춘","청량리","수인분당"],
+  ["회기","1","회기","경의중앙"],
+  ["회기","1","회기","경춘"],
+  ["중랑","경의중앙","중랑","경춘"],
+  ["망우","경의중앙","망우","경춘"],
+  ["용산","1","용산","경의중앙"],
+  ["옥수","3","옥수","경의중앙"],
+  ["대곡","3","대곡","경의중앙"],
+  ["대곡","경의중앙","대곡","GTX-A"],
+  ["연신내","3","연신내","6"],
+  ["연신내","6","연신내","GTX-A"],
+  ["연신내","3","연신내","GTX-A"],
+  ["수서","GTX-A","수서","3"],
+  ["샛강","9","샛강","신림"],
+  ["사당","2","사당","신림"],
+  ["낙성대","2","낙성대","신림"],
+  ["보라매","7","보라매","신림"],
+  ["마곡나루","9","마곡나루","공항"],
+  ["한대앞","4","한대앞","수인분당"],
+  ["강남구청","7","강남구청","수인분당"],
+  ["도곡","3","도곡","수인분당"],
 ];
 
-for (const group of TRANSFER_STATIONS) {
-  for (const [stA, lineA] of group) {
-    for (const [stB, lineB] of group) {
-      if (lineA !== lineB) {
-        addEdge(`${stA}::${lineA}`, `${stB}::${lineB}`);
-      }
-    }
-  }
+for (const [stA, lineA, stB, lineB] of TRANSFER_PAIRS) {
+  addEdge(`${stA}::${lineA}`, `${stB}::${lineB}`);
 }
 
-// Enrich stations with transfer line info
+// Enrich stations with transfer info
 const transferMap: Record<string, string[]> = {};
-for (const group of TRANSFER_STATIONS) {
-  for (const [stName, lineNum] of group) {
-    const key = `${stName}::${lineNum}`;
-    if (!transferMap[key]) transferMap[key] = [];
-    for (const [otherSt, otherLine] of group) {
-      if (otherLine !== lineNum && !transferMap[key].includes(otherLine)) {
-        transferMap[key].push(otherLine);
-      }
-    }
-  }
+for (const [stA, lineA, stB, lineB] of TRANSFER_PAIRS) {
+  const keyA = `${stA}::${lineA}`;
+  const keyB = `${stB}::${lineB}`;
+  if (!transferMap[keyA]) transferMap[keyA] = [];
+  if (!transferMap[keyB]) transferMap[keyB] = [];
+  if (!transferMap[keyA].includes(lineB)) transferMap[keyA].push(lineB);
+  if (!transferMap[keyB].includes(lineA)) transferMap[keyB].push(lineA);
 }
 
 for (const station of ALL_STATIONS) {
@@ -711,26 +588,21 @@ for (const station of ALL_STATIONS) {
   }
 }
 
+// ============================
 // BFS pathfinding
+// ============================
 export function findShortestPath(from: string, to: string): null | { path: string[]; totalStations: number } {
-  // Find all nodes matching from/to station names
   const startNodes = Object.keys(SUBWAY_GRAPH).filter(k => k.startsWith(`${from}::`));
   const endNodes = new Set(Object.keys(SUBWAY_GRAPH).filter(k => k.startsWith(`${to}::`)));
 
   if (startNodes.length === 0 || endNodes.size === 0) return null;
 
-  const visited = new Set<string>();
+  const visited = new Set<string>(startNodes);
   const queue: { node: string; path: string[] }[] = startNodes.map(n => ({ node: n, path: [n] }));
-
-  for (const start of startNodes) {
-    visited.add(start);
-  }
 
   while (queue.length > 0) {
     const { node, path } = queue.shift()!;
-    if (endNodes.has(node)) {
-      return { path, totalStations: path.length };
-    }
+    if (endNodes.has(node)) return { path, totalStations: path.length };
     for (const neighbor of (SUBWAY_GRAPH[node] || [])) {
       if (!visited.has(neighbor)) {
         visited.add(neighbor);
@@ -754,7 +626,6 @@ export function searchStations(query: string, lineFilter?: string): StationInfo[
     const q = query.toLowerCase();
     results = results.filter(s => s.name.toLowerCase().includes(q));
   }
-  // Deduplicate by name+line
   const seen = new Set<string>();
   return results.filter(s => {
     const key = `${s.name}-${s.lineNumber}`;

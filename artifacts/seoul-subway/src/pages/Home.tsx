@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import MapViewer from "@/components/MapViewer";
 import ControlPanel from "@/components/ControlPanel";
-import IndoorNavigationModal from "@/components/IndoorNavigationModal";
 
 export default function Home() {
   const [selectedStation, setSelectedStation] = useState<string | null>(null);
@@ -14,24 +13,19 @@ export default function Home() {
         <MapViewer
           onStationClick={setSelectedStation}
           selectedLine={selectedLine}
+          onLineSelect={setSelectedLine}
         />
       </div>
       {/* Control panel: 1/5 of screen */}
       <div
         className="border-t bg-card relative z-10 shadow-lg flex-shrink-0"
-        style={{ height: "20vh", minHeight: "160px", maxHeight: "260px" }}
+        style={{ height: "20vh", minHeight: "170px", maxHeight: "280px" }}
       >
         <ControlPanel
           onLineSelect={setSelectedLine}
           onStationSelect={setSelectedStation}
         />
       </div>
-      {selectedStation && (
-        <IndoorNavigationModal
-          stationName={selectedStation}
-          onClose={() => setSelectedStation(null)}
-        />
-      )}
     </div>
   );
 }
