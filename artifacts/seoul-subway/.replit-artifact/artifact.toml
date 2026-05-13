@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "서울 지하철"
+version = "1.0.0"
+id = "artifacts/seoul-subway"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21269
+
+[services.development]
+run = "pnpm --filter @workspace/seoul-subway run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/seoul-subway", "run", "build" ]
+publicDir = "artifacts/seoul-subway/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21269"
+BASE_PATH = "/"

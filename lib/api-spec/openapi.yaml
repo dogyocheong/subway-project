@@ -3,13 +3,15 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Seoul Subway API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: subway
+    description: Seoul subway operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,132 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /subway/stations:
+    get:
+      operationId: searchStations
+      tags: [subway]
+      summary: Search subway stations
+      description: Search stations by name, returns matching stations with line info
+      parameters:
+        - name: q
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Search query (station name)
+        - name: line
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filter by line number (e.g. "1", "2", "경의중앙")
+      responses:
+        "200":
+          description: List of stations
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Station"
+
+  /subway/arrival/{stationName}:
+    get:
+      operationId: getRealtimeArrival
+      tags: [subway]
+      summary: Get realtime arrival info
+      description: Returns realtime train arrival information for a given station
+      parameters:
+        - name: stationName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Station name in Korean (e.g. 홍대입구)
+      responses:
+        "200":
+          description: Realtime arrival data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArrivalResponse"
+        "500":
+          description: External API error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /subway/route:
+    get:
+      operationId: findRoute
+      tags: [subway]
+      summary: Find shortest route between two stations
+      description: Returns the optimal route with line changes between departure and destination
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Departure station name
+        - name: to
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Destination station name
+      responses:
+        "200":
+          description: Route information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RouteResult"
+        "404":
+          description: Station not found or no route
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /subway/lines:
+    get:
+      operationId: getLines
+      tags: [subway]
+      summary: Get all subway lines
+      description: Returns all Seoul subway lines with color info
+      responses:
+        "200":
+          description: List of lines
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/SubwayLine"
+
+  /subway/station-map/{stationName}:
+    get:
+      operationId: getStationMap
+      tags: [subway]
+      summary: Get station internal map info
+      description: Returns internal layout info for indoor navigation
+      parameters:
+        - name: stationName
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Station map info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StationMap"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +162,154 @@ components:
       required:
         - status
 
+    Station:
+      type: object
+      required: [id, name, line, lineColor, lineNumber]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        line:
+          type: string
+        lineColor:
+          type: string
+        lineNumber:
+          type: string
+        transferLines:
+          type: array
+          items:
+            type: string
+
+    SubwayLine:
+      type: object
+      required: [id, name, color, shortName]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        shortName:
+          type: string
+        color:
+          type: string
+
+    ArrivalInfo:
+      type: object
+      required: [trainNo, destination, remainingTime, status, line, currentStation]
+      properties:
+        trainNo:
+          type: string
+        destination:
+          type: string
+        remainingTime:
+          type: string
+        status:
+          type: string
+        line:
+          type: string
+        lineColor:
+          type: string
+        currentStation:
+          type: string
+        direction:
+          type: string
+        isLastTrain:
+          type: boolean
+
+    ArrivalResponse:
+      type: object
+      required: [stationName, arrivals]
+      properties:
+        stationName:
+          type: string
+        arrivals:
+          type: array
+          items:
+            $ref: "#/components/schemas/ArrivalInfo"
+        updatedAt:
+          type: string
+
+    RouteSegment:
+      type: object
+      required: [stations, line, lineColor, lineNumber]
+      properties:
+        stations:
+          type: array
+          items:
+            type: string
+        line:
+          type: string
+        lineColor:
+          type: string
+        lineNumber:
+          type: string
+        boardingInfo:
+          type: string
+
+    RouteResult:
+      type: object
+      required: [from, to, segments, totalStations, transferCount]
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        segments:
+          type: array
+          items:
+            $ref: "#/components/schemas/RouteSegment"
+        totalStations:
+          type: integer
+        transferCount:
+          type: integer
+        estimatedTime:
+          type: integer
+
+    StationFacility:
+      type: object
+      required: [type, location, description]
+      properties:
+        type:
+          type: string
+        location:
+          type: string
+        description:
+          type: string
+
+    StationExit:
+      type: object
+      required: [number, description]
+      properties:
+        number:
+          type: string
+        description:
+          type: string
+
+    StationMap:
+      type: object
+      required: [stationName, floors, exits, facilities]
+      properties:
+        stationName:
+          type: string
+        floors:
+          type: array
+          items:
+            type: string
+        exits:
+          type: array
+          items:
+            $ref: "#/components/schemas/StationExit"
+        facilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/StationFacility"
+        transferInfo:
+          type: ["string", "null"]
+
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
