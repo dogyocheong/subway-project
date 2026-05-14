@@ -9,6 +9,7 @@ import line6Img from "@assets/image_1778689762968.png";
 import line7Img from "@assets/image_1778689778332.png";
 import line8Img from "@assets/image_1778689833118.png";
 import line9Img from "@assets/image_1778689918077.png";
+import ToiletMap from "./ToiletMap";
 
 const LINE_MAP_IMAGES: Record<string, string> = {
   all: subwayAllImg,
@@ -24,24 +25,11 @@ const LINE_MAP_IMAGES: Record<string, string> = {
 };
 
 const LINE_COLORS: Record<string, string> = {
-  "1": "#0052A4",
-  "2": "#00A84D",
-  "3": "#EF7C1C",
-  "4": "#00A5DE",
-  "5": "#996CAC",
-  "6": "#CD7C2F",
-  "7": "#747F00",
-  "8": "#E6186C",
-  "9": "#BDB092",
-  "경의중앙": "#77C4A3",
-  "공항": "#4EA4D4",
-  "수인분당": "#F5A200",
-  "신분당": "#D31145",
-  "경춘": "#0C8E72",
-  "우이신설": "#B0CE18",
-  "신림": "#6789CA",
-  "김포골드": "#9DC15D",
-  "GTX-A": "#005EB8",
+  "1": "#0052A4", "2": "#00A84D", "3": "#EF7C1C", "4": "#00A5DE",
+  "5": "#996CAC", "6": "#CD7C2F", "7": "#747F00", "8": "#E6186C", "9": "#BDB092",
+  "경의중앙": "#77C4A3", "공항": "#4EA4D4", "수인분당": "#F5A200",
+  "신분당": "#D31145", "경춘": "#0C8E72", "우이신설": "#B0CE18",
+  "신림": "#6789CA", "김포골드": "#9DC15D", "GTX-A": "#005EB8",
 };
 
 const LINE_NAMES: Record<string, string> = {
@@ -60,16 +48,15 @@ interface Props {
 
 export default function MapViewer({ onStationClick, selectedLine, onLineSelect }: Props) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [showToilets, setShowToilets] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
-  const imgRef = useRef<HTMLImageElement>(null);
 
   const currentImage = selectedLine && LINE_MAP_IMAGES[selectedLine]
     ? LINE_MAP_IMAGES[selectedLine]
     : LINE_MAP_IMAGES.all;
 
-  // Reset transform when line changes
   useEffect(() => {
     setTransform({ x: 0, y: 0, scale: 1 });
   }, [selectedLine]);
@@ -121,21 +108,19 @@ export default function MapViewer({ onStationClick, selectedLine, onLineSelect }
     }
   }, [handleWheel]);
 
-  const zoom = (factor: number) => {
-    setTransform(prev => ({
-      ...prev,
-      scale: Math.min(Math.max(0.3, prev.scale * factor), 12),
-    }));
-  };
+  const zoom = (factor: number) => setTransform(prev => ({
+    ...prev, scale: Math.min(Math.max(0.3, prev.scale * factor), 12),
+  }));
 
   const reset = () => setTransform({ x: 0, y: 0, scale: 1 });
 
-  const allLineKeys = Object.keys(LINE_NAMES);
-
   return (
-    <div className="relative w-full h-full flex flex-col" style={{ background: "#f8f8f8" }}>
-      {/* Line selector top bar */}
-      <div className="flex-shrink-0 flex items-center gap-1 px-2 py-1.5 bg-white border-b overflow-x-auto scrollbar-none" style={{ scrollbarWidth: "none" }}>
+    <div className="relative w-full h-full flex flex-col">
+      {/* ── Row 1: Line selector ── */}
+      <div
+        className="flex-shrink-0 flex items-center gap-1 px-2 py-1 bg-white border-b overflow-x-auto"
+        style={{ scrollbarWidth: "none", WebkitOverflowScrolling: "touch" }}
+      >
         <button
           onClick={() => onLineSelect?.(null)}
           className="flex-shrink-0 px-2.5 py-1 rounded text-xs font-bold border transition-all"
@@ -144,104 +129,104 @@ export default function MapViewer({ onStationClick, selectedLine, onLineSelect }
             color: !selectedLine ? "#fff" : "#555",
             borderColor: !selectedLine ? "#333" : "#ddd",
           }}
-        >
-          전체
-        </button>
-        {allLineKeys.map(lineId => (
+        >전체</button>
+        {Object.keys(LINE_NAMES).map(lineId => (
           <button
             key={lineId}
             onClick={() => onLineSelect?.(selectedLine === lineId ? null : lineId)}
-            className="flex-shrink-0 px-2.5 py-1 rounded text-xs font-bold border transition-all"
+            className="flex-shrink-0 px-2 py-1 rounded text-xs font-bold border transition-all"
             style={{
               backgroundColor: selectedLine === lineId ? LINE_COLORS[lineId] : "transparent",
               color: selectedLine === lineId ? "#fff" : LINE_COLORS[lineId],
               borderColor: LINE_COLORS[lineId],
               minWidth: "fit-content",
             }}
-          >
-            {LINE_NAMES[lineId]}
-          </button>
+          >{LINE_NAMES[lineId]}</button>
         ))}
       </div>
 
-      {/* Map image area */}
-      <div
-        className="flex-1 overflow-hidden relative"
-        ref={containerRef}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
-        style={{
-          cursor: isDragging.current ? "grabbing" : "grab",
-          touchAction: "none",
-          userSelect: "none",
-          background: selectedLine && ["1","2","3","4","5","6","7","8","9"].includes(selectedLine) ? "#ffffff" : "#f0f0f0",
-        }}
-      >
-        <div
+      {/* ── Row 2: Toilet map bar ── */}
+      <div className="flex-shrink-0 flex items-center gap-2 px-2 py-1 bg-gray-50 border-b">
+        <button
+          onClick={() => setShowToilets(v => !v)}
+          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border-2 transition-all"
           style={{
-            position: "absolute",
-            transformOrigin: "top left",
-            transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
-            width: "100%",
-            height: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
+            backgroundColor: showToilets ? "#4f86f7" : "transparent",
+            color: showToilets ? "#fff" : "#4f86f7",
+            borderColor: "#4f86f7",
           }}
         >
-          <img
-            ref={imgRef}
-            src={currentImage}
-            alt={selectedLine ? `${LINE_NAMES[selectedLine] || selectedLine} 노선도` : "서울 지하철 노선도"}
-            draggable={false}
+          <span>🚻</span>
+          <span>공중화장실 지도</span>
+        </button>
+        {showToilets && (
+          <span className="text-xs text-gray-400">주변 화장실 위치를 지도로 확인합니다</span>
+        )}
+      </div>
+
+      {/* ── Map area ── */}
+      <div className="flex-1 overflow-hidden relative min-h-0">
+        {/* Subway map image with pan/zoom */}
+        <div
+          className="w-full h-full"
+          ref={containerRef}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
+          style={{
+            cursor: isDragging.current ? "grabbing" : "grab",
+            touchAction: "none",
+            userSelect: "none",
+            background: "#f0f0f0",
+          }}
+        >
+          <div
             style={{
-              maxWidth: "none",
+              position: "absolute",
+              transformOrigin: "top left",
+              transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
               width: "100%",
               height: "100%",
-              objectFit: "contain",
-              display: "block",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
             }}
-          />
-        </div>
+          >
+            <img
+              src={currentImage}
+              alt={selectedLine ? `${LINE_NAMES[selectedLine] ?? selectedLine} 노선도` : "서울 지하철 노선도"}
+              draggable={false}
+              style={{ maxWidth: "none", width: "100%", height: "100%", objectFit: "contain", display: "block" }}
+            />
+          </div>
 
-        {/* Zoom controls */}
-        <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-10">
-          <button
-            data-testid="button-zoom-in"
-            className="w-9 h-9 rounded-md border border-gray-300 bg-white text-xl font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors flex items-center justify-center leading-none"
-            onClick={() => zoom(1.3)}
-          >+</button>
-          <button
-            data-testid="button-zoom-out"
-            className="w-9 h-9 rounded-md border border-gray-300 bg-white text-xl font-semibold text-gray-700 hover:bg-gray-50 shadow-sm transition-colors flex items-center justify-center leading-none"
-            onClick={() => zoom(0.77)}
-          >−</button>
-          <button
-            data-testid="button-reset"
-            className="w-9 h-9 rounded-md border border-gray-300 bg-white text-xs text-gray-500 hover:bg-gray-50 shadow-sm transition-colors flex items-center justify-center"
-            onClick={reset}
-            title="초기화"
-          >⊙</button>
-        </div>
+          {/* Zoom controls */}
+          <div className="absolute bottom-3 right-3 flex flex-col gap-1 z-10">
+            <button className="w-9 h-9 rounded-md border bg-white text-xl font-semibold text-gray-700 hover:bg-gray-50 shadow flex items-center justify-center" onClick={() => zoom(1.3)}>+</button>
+            <button className="w-9 h-9 rounded-md border bg-white text-xl font-semibold text-gray-700 hover:bg-gray-50 shadow flex items-center justify-center" onClick={() => zoom(0.77)}>−</button>
+            <button className="w-9 h-9 rounded-md border bg-white text-xs text-gray-500 hover:bg-gray-50 shadow flex items-center justify-center" onClick={reset} title="초기화">⊙</button>
+          </div>
 
-        {/* Current line badge */}
-        {selectedLine && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
-            <div
-              className="px-4 py-1.5 rounded-full text-white text-sm font-bold shadow-lg"
-              style={{ backgroundColor: LINE_COLORS[selectedLine] || "#555" }}
-            >
-              {LINE_NAMES[selectedLine] || selectedLine}
+          {selectedLine && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+              <div className="px-4 py-1 rounded-full text-white text-sm font-bold shadow-lg" style={{ backgroundColor: LINE_COLORS[selectedLine] || "#555" }}>
+                {LINE_NAMES[selectedLine] || selectedLine}
+              </div>
             </div>
+          )}
+
+          <div className="absolute bottom-3 left-3 text-xs text-gray-400 pointer-events-none bg-white/70 px-2 py-0.5 rounded">
+            드래그·스크롤 이동/확대
+          </div>
+        </div>
+
+        {/* Toilet map overlay */}
+        {showToilets && (
+          <div className="absolute inset-0 z-20">
+            <ToiletMap onClose={() => setShowToilets(false)} />
           </div>
         )}
-
-        {/* Hint */}
-        <div className="absolute bottom-3 left-3 text-xs text-gray-400 pointer-events-none select-none bg-white/70 px-2 py-0.5 rounded">
-          드래그·스크롤 이동/확대
-        </div>
       </div>
     </div>
   );
