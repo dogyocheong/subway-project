@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -29,15 +29,48 @@ const LINE_NAMES: Record<string, string> = {
   "신림": "신림선", "김포골드": "김포골드라인", "GTX-A": "GTX-A",
 };
 
-interface Station {
-  id: string;
-  name: string;
-  line: string;
-  lineNumber: string;
-  lineColor: string;
-  transferLines?: string[];
+// Time slot helper for congestion
+const TIME_SLOTS = [
+  "05:30","06:00","06:30","07:00","07:30","08:00","08:30","09:00","09:30",
+  "10:00","10:30","11:00","11:30","12:00","12:30","13:00","13:30","14:00",
+  "14:30","15:00","15:30","16:00","16:30","17:00","17:30","18:00","18:30",
+  "19:00","19:30","20:00","20:30","21:00","21:30","22:00","22:30","23:00",
+  "23:30","00:00","00:30",
+];
+
+function getCurrentTimeSlot(): string {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const totalMin = h * 60 + m;
+  // Find closest 30-min slot
+  let best = TIME_SLOTS[0];
+  let bestDiff = 9999;
+  for (const slot of TIME_SLOTS) {
+    const [sh, sm] = slot.split(":").map(Number);
+    const slotMin = (sh === 0 || sh === 1) ? (sh + 24) * 60 + sm : sh * 60 + sm; // treat 00: as +24h
+    const diff = Math.abs(totalMin - slotMin);
+    if (diff < bestDiff) { bestDiff = diff; best = slot; }
+  }
+  return best;
 }
 
+function getDayType(): string {
+  const d = new Date().getDay();
+  if (d === 0) return "일요일";
+  if (d === 6) return "토요일";
+  return "평일";
+}
+
+function congestionLevel(v: number): { label: string; color: string; bg: string; pct: number } {
+  if (v < 30) return { label: "매우 여유", color: "#22c55e", bg: "#dcfce7", pct: Math.round((v / 30) * 25) };
+  if (v < 60) return { label: "여유", color: "#84cc16", bg: "#f0fdf4", pct: Math.round(25 + ((v-30)/30)*25) };
+  if (v < 80) return { label: "보통", color: "#f59e0b", bg: "#fef3c7", pct: Math.round(50 + ((v-60)/20)*20) };
+  if (v < 100) return { label: "혼잡", color: "#f97316", bg: "#fff7ed", pct: Math.round(70 + ((v-80)/20)*20) };
+  return { label: "매우 혼잡", color: "#ef4444", bg: "#fef2f2", pct: Math.min(100, Math.round(90 + ((v-100)/50)*10)) };
+}
+
+interface Station { id: string; name: string; line: string; lineNumber: string; lineColor: string; }
 interface Props {
   onLineSelect?: (lineId: string | null) => void;
   onStationSelect?: (station: string) => void;
@@ -54,13 +87,13 @@ export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
         </TabsList>
         <div className="flex-1 overflow-hidden relative min-h-0">
           <TabsContent value="line" className="absolute inset-0 m-0 overflow-auto">
-            <LineSearch onLineSelect={onLineSelect} />
+            <LineTab onLineSelect={onLineSelect} />
           </TabsContent>
           <TabsContent value="route" className="absolute inset-0 m-0 overflow-hidden">
-            <RouteSearch onStationSelect={onStationSelect} />
+            <RouteTab />
           </TabsContent>
           <TabsContent value="arrival" className="absolute inset-0 m-0 overflow-hidden">
-            <ArrivalSearch onLineSelect={onLineSelect} />
+            <ArrivalTab onLineSelect={onLineSelect} />
           </TabsContent>
         </div>
       </Tabs>
@@ -68,60 +101,48 @@ export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
   );
 }
 
-// ─────────────────────────────────────────────
-// 1. 노선 선택 tab
-// ─────────────────────────────────────────────
-function LineSearch({ onLineSelect }: { onLineSelect?: (lineId: string | null) => void }) {
+// ─────────────────────────────────────────────────────────────────
+// 1. 노선 선택 Tab
+// ─────────────────────────────────────────────────────────────────
+function LineTab({ onLineSelect }: { onLineSelect?: (l: string | null) => void }) {
   const [selected, setSelected] = useState<string | null>(null);
-  const [stationQuery, setStationQuery] = useState("");
-  const debouncedQ = useDebounce(stationQuery, 250);
+  const [q, setQ] = useState("");
+  const dq = useDebounce(q, 250);
 
   const { data: stations } = useSearchStations(
-    { q: debouncedQ, line: selected || undefined },
-    { query: { enabled: debouncedQ.length > 0, queryKey: getSearchStationsQueryKey({ q: debouncedQ, line: selected || undefined }) } }
+    { q: dq, line: selected || undefined },
+    { query: { enabled: dq.length > 0, queryKey: getSearchStationsQueryKey({ q: dq, line: selected || undefined }) } }
   );
 
-  const handleLineSelect = (lineId: string) => {
-    const next = selected === lineId ? null : lineId;
-    setSelected(next);
-    onLineSelect?.(next);
-    setStationQuery("");
+  const pick = (id: string) => {
+    const next = selected === id ? null : id;
+    setSelected(next); onLineSelect?.(next); setQ("");
   };
 
   return (
     <div className="flex flex-col gap-2 h-full">
-      <div className="flex flex-wrap gap-1.5 flex-shrink-0">
-        {Object.keys(LINE_NAMES).map(lineId => (
-          <button
-            key={lineId}
-            onClick={() => handleLineSelect(lineId)}
-            className="px-3 py-1 rounded-full text-xs font-bold border-2 transition-all"
+      <div className="flex flex-wrap gap-1.5">
+        {Object.keys(LINE_NAMES).map(id => (
+          <button key={id} onClick={() => pick(id)}
+            className="px-2.5 py-1 rounded-full text-xs font-bold border-2 transition-all"
             style={{
-              backgroundColor: selected === lineId ? LINE_COLORS[lineId] : "transparent",
-              color: selected === lineId ? "#fff" : LINE_COLORS[lineId],
-              borderColor: LINE_COLORS[lineId],
-            }}
-          >{LINE_NAMES[lineId]}</button>
+              backgroundColor: selected === id ? LINE_COLORS[id] : "transparent",
+              color: selected === id ? "#fff" : LINE_COLORS[id],
+              borderColor: LINE_COLORS[id],
+            }}>{LINE_NAMES[id]}</button>
         ))}
         {selected && (
           <button onClick={() => { setSelected(null); onLineSelect?.(null); }}
-            className="px-3 py-1 rounded-full text-xs font-bold border-2 border-gray-300 text-gray-500 hover:bg-gray-100">
-            전체보기
-          </button>
+            className="px-2.5 py-1 rounded-full text-xs font-bold border-2 border-gray-300 text-gray-500 hover:bg-gray-100">전체</button>
         )}
       </div>
-      <div className="relative flex-shrink-0">
-        <Input
-          placeholder={selected ? `${LINE_NAMES[selected]} 역 검색...` : "역 이름 검색..."}
-          value={stationQuery}
-          onChange={e => setStationQuery(e.target.value)}
-          className="h-11 text-base"
-        />
-        {stations && stations.length > 0 && stationQuery.length > 0 && (
+      <div className="relative">
+        <Input placeholder={selected ? `${LINE_NAMES[selected]} 역 검색...` : "역 이름 검색..."} value={q} onChange={e => setQ(e.target.value)} className="h-11 text-base" />
+        {stations && stations.length > 0 && q.length > 0 && (
           <div className="absolute top-full left-0 w-full mt-1 bg-popover border rounded-lg shadow-xl z-50 max-h-44 overflow-y-auto">
             {stations.slice(0, 15).map(st => (
               <div key={st.id} className="px-4 py-2.5 hover:bg-accent cursor-pointer flex items-center gap-3 text-sm">
-                <span className="inline-block w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: st.lineColor }} />
+                <span className="w-3 h-3 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: st.lineColor }} />
                 <span className="font-medium">{st.name}</span>
                 <span className="text-xs text-muted-foreground ml-auto">{st.line}</span>
               </div>
@@ -133,34 +154,72 @@ function LineSearch({ onLineSelect }: { onLineSelect?: (lineId: string | null) =
   );
 }
 
-// ─────────────────────────────────────────────
-// 2. 경로 탐색 tab
-// ─────────────────────────────────────────────
-function RouteSearch({ onStationSelect }: { onStationSelect?: (station: string) => void }) {
+// ─────────────────────────────────────────────────────────────────
+// 2. 경로 탐색 Tab  (환승 상세 + 혼잡도)
+// ─────────────────────────────────────────────────────────────────
+function RouteTab() {
   const [from, setFrom] = useState<Station | null>(null);
   const [to, setTo] = useState<Station | null>(null);
   const [searched, setSearched] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [congestionMap, setCongestionMap] = useState<Record<string, { label: string; color: string; bg: string; pct: number; value: number } | null>>({});
 
   const { data: routeResult, isLoading } = useFindRoute(
     { from: from?.name || "", to: to?.name || "" },
     { query: { enabled: searched && !!from && !!to, queryKey: getFindRouteQueryKey({ from: from?.name || "", to: to?.name || "" }) } }
   );
 
-  const handleVoiceGuide = () => {
+  // Fetch congestion for each segment when route result arrives
+  useEffect(() => {
+    if (!routeResult) return;
+    const dayType = getDayType();
+    const slot = getCurrentTimeSlot();
+    const segs = routeResult.segments as any[];
+    const newMap: Record<string, any> = {};
+
+    Promise.all(
+      segs.map(async (seg: any) => {
+        const boardStation = seg.stations[0];
+        try {
+          const resp = await fetch(`/api/subway/congestion?line=${encodeURIComponent(seg.lineNumber)}&station=${encodeURIComponent(boardStation)}&dayType=${encodeURIComponent(dayType)}`);
+          const data = await resp.json();
+          if (data.congestion) {
+            const dirs = data.congestion[dayType] || {};
+            // Average 상선 + 하선 or pick either
+            const vals: number[] = [];
+            for (const dir of Object.values(dirs) as any[]) {
+              const v = dir[slot];
+              if (v != null) vals.push(v);
+            }
+            const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+            if (avg != null) {
+              const lv = congestionLevel(avg);
+              newMap[seg.stations[0]] = { ...lv, value: Math.round(avg) };
+            } else {
+              newMap[seg.stations[0]] = null;
+            }
+          } else {
+            newMap[seg.stations[0]] = null;
+          }
+        } catch { newMap[seg.stations[0]] = null; }
+      })
+    ).then(() => setCongestionMap(newMap));
+  }, [routeResult]);
+
+  const handleVoice = () => {
     if (!routeResult) return;
     if (!window.speechSynthesis) { alert("이 브라우저는 음성 안내를 지원하지 않습니다."); return; }
     if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); return; }
 
-    const xferTexts = (routeResult.segments as any[]).map((seg: any, i: number) => {
-      const xi = seg.transferInfo;
+    const segs = routeResult.segments as any[];
+    const parts = segs.map((seg: any, i: number) => {
+      const xi = seg.transferInfo as any;
       if (i === 0) return `${seg.stations[0]}역에서 ${seg.line}을 탑승합니다.`;
       if (xi) return `${xi.fromStation}역에서 ${xi.alightCar}호차 ${xi.alightDoor}번 문으로 내리신 후, ${xi.toLine}으로 환승하여 ${xi.boardDirection} 방향 ${xi.boardCar}호차 ${xi.boardDoor}번 문에서 탑승하세요. 환승 소요시간 약 ${xi.time}.`;
       return `${seg.stations[0]}역에서 ${seg.line}으로 환승합니다.`;
-    }).join(" ");
-
-    const fullText = `${from?.name}에서 ${to?.name}까지. 총 ${routeResult.totalStations}개 역, 환승 ${routeResult.transferCount}회, 약 ${routeResult.estimatedTime}분 소요. ${xferTexts} 목적지 ${to?.name}에 도착합니다.`;
-    const utt = new SpeechSynthesisUtterance(fullText);
+    });
+    const full = `${from?.name}에서 ${to?.name}까지. 총 ${routeResult.totalStations}개 역, 환승 ${routeResult.transferCount}회, 약 ${routeResult.estimatedTime}분 소요. ${parts.join(" ")} 목적지 ${to?.name}에 도착합니다.`;
+    const utt = new SpeechSynthesisUtterance(full);
     utt.lang = "ko-KR"; utt.rate = 0.9;
     utt.onend = () => setIsSpeaking(false);
     utt.onerror = () => setIsSpeaking(false);
@@ -168,27 +227,24 @@ function RouteSearch({ onStationSelect }: { onStationSelect?: (station: string) 
     setIsSpeaking(true);
   };
 
-  const swapStations = () => { setFrom(to); setTo(from); setSearched(false); };
-
   return (
     <div className="flex flex-col h-full gap-2">
       {/* Input row */}
       <div className="flex items-center gap-1.5 flex-shrink-0">
         <div className="flex-1">
-          <StationSearchInput placeholder="출발역" value={from?.name || ""} onSelect={(st) => { setFrom(st); setSearched(false); }} />
+          <StationInput placeholder="출발역" value={from?.name || ""} onSelect={st => { setFrom(st); setSearched(false); }} />
         </div>
-        <button onClick={swapStations} className="flex-shrink-0 w-8 h-11 flex items-center justify-center text-gray-400 hover:text-gray-700 text-xl" title="출발/도착 바꾸기">⇄</button>
+        <button onClick={() => { setFrom(to); setTo(from); setSearched(false); }}
+          className="flex-shrink-0 w-8 h-11 flex items-center justify-center text-gray-400 hover:text-gray-700 text-lg" title="바꾸기">⇄</button>
         <div className="flex-1">
-          <StationSearchInput placeholder="도착역" value={to?.name || ""} onSelect={(st) => { setTo(st); setSearched(false); }} />
+          <StationInput placeholder="도착역" value={to?.name || ""} onSelect={st => { setTo(st); setSearched(false); }} />
         </div>
-        <Button onClick={() => { if (from && to) setSearched(true); }} disabled={!from || !to} size="default" className="flex-shrink-0 h-11 px-4 text-sm font-semibold">
-          찾기
-        </Button>
+        <Button onClick={() => { if (from && to) { setSearched(true); setCongestionMap({}); } }}
+          disabled={!from || !to} size="default" className="flex-shrink-0 h-11 px-4 text-sm font-semibold">찾기</Button>
       </div>
 
-      {/* Result area */}
       <div className="flex-1 min-h-0 overflow-hidden">
-        {isLoading && <div className="text-sm text-muted-foreground p-2 text-center">경로 탐색 중...</div>}
+        {isLoading && <div className="text-sm text-muted-foreground text-center py-4">경로 탐색 중...</div>}
 
         {routeResult && !isLoading && (
           <div className="h-full flex flex-col gap-1.5 overflow-hidden">
@@ -199,39 +255,41 @@ function RouteSearch({ onStationSelect }: { onStationSelect?: (station: string) 
                 환승 <strong className="text-foreground">{routeResult.transferCount}회</strong> ·
                 약 <strong className="text-foreground">{routeResult.estimatedTime}분</strong>
               </span>
-              <Button variant={isSpeaking ? "destructive" : "outline"} size="sm" className="ml-auto h-7 px-3 text-xs" onClick={handleVoiceGuide}>
+              <Button variant={isSpeaking ? "destructive" : "outline"} size="sm"
+                className="ml-auto h-7 px-3 text-xs" onClick={handleVoice}>
                 {isSpeaking ? "🔊 중지" : "🔊 음성 안내"}
               </Button>
             </div>
 
-            {/* Horizontal route line */}
+            {/* Horizontal route visualization */}
             <ScrollArea className="flex-shrink-0 w-full">
               <div className="flex items-start pb-2 pt-1 pl-2" style={{ minWidth: "max-content" }}>
-                {(routeResult.segments as any[]).map((seg: any, segIdx: number) => (
-                  <React.Fragment key={segIdx}>
-                    {(seg.stations as string[]).map((stationName: string, stIdx: number) => {
-                      const isFirst = segIdx === 0 && stIdx === 0;
-                      const isLast = segIdx === routeResult.segments.length - 1 && stIdx === seg.stations.length - 1;
-                      const isTransfer = stIdx === 0 && segIdx > 0;
-                      const showConnector = !(stIdx === seg.stations.length - 1 && segIdx === routeResult.segments.length - 1);
+                {(routeResult.segments as any[]).map((seg: any, si: number) => (
+                  <React.Fragment key={si}>
+                    {(seg.stations as string[]).map((name: string, stIdx: number) => {
+                      const isFirst = si === 0 && stIdx === 0;
+                      const isLast = si === routeResult.segments.length - 1 && stIdx === seg.stations.length - 1;
+                      const isTransfer = stIdx === 0 && si > 0;
+                      const showLineAfter = !(stIdx === seg.stations.length - 1 && si === routeResult.segments.length - 1);
                       return (
-                        <React.Fragment key={`${segIdx}-${stIdx}`}>
-                          <div className="flex flex-col items-center" style={{ minWidth: "52px" }}>
-                            <div className="relative flex items-center justify-center" style={{ height: "26px" }}>
+                        <React.Fragment key={`${si}-${stIdx}`}>
+                          <div className="flex flex-col items-center" style={{ minWidth: 52 }}>
+                            <div className="relative flex items-center justify-center" style={{ height: 26 }}>
                               {(isTransfer || isFirst || isLast)
-                                ? <div className="rounded-full z-10" style={{ width: "20px", height: "20px", backgroundColor: "#fff", border: `4px solid ${seg.lineColor}`, boxShadow: isTransfer ? `0 0 0 2px #fff, 0 0 0 4px ${seg.lineColor}` : "none" }} />
-                                : <div className="rounded-full z-10" style={{ width: "10px", height: "10px", backgroundColor: seg.lineColor }} />
+                                ? <div className="rounded-full z-10" style={{ width: 20, height: 20, backgroundColor: "#fff", border: `4px solid ${seg.lineColor}`, boxShadow: isTransfer ? `0 0 0 2px #fff,0 0 0 4px ${seg.lineColor}` : undefined }} />
+                                : <div className="rounded-full z-10" style={{ width: 10, height: 10, backgroundColor: seg.lineColor }} />
                               }
                             </div>
-                            <span className="text-center whitespace-nowrap leading-tight mt-0.5" style={{ fontSize: (isFirst || isLast || isTransfer) ? "11px" : "9px", fontWeight: (isFirst || isLast || isTransfer) ? "700" : "400", color: (isFirst || isLast || isTransfer) ? "var(--color-foreground)" : "var(--color-muted-foreground)", maxWidth: "52px", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {stationName}
+                            <span className="text-center whitespace-nowrap leading-tight mt-0.5"
+                              style={{ fontSize: (isFirst || isLast || isTransfer) ? 11 : 9, fontWeight: (isFirst || isLast || isTransfer) ? 700 : 400, color: (isFirst || isLast || isTransfer) ? "var(--color-foreground)" : "var(--color-muted-foreground)", maxWidth: 52, overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {name}
                             </span>
                           </div>
-                          {showConnector && stIdx < seg.stations.length - 1 && (
-                            <div style={{ height: "4px", width: "22px", backgroundColor: seg.lineColor, marginTop: "11px", flexShrink: 0 }} />
+                          {showLineAfter && stIdx < seg.stations.length - 1 && (
+                            <div style={{ height: 4, width: 22, backgroundColor: seg.lineColor, marginTop: 11, flexShrink: 0 }} />
                           )}
-                          {stIdx === seg.stations.length - 1 && segIdx < routeResult.segments.length - 1 && (
-                            <div style={{ height: "4px", width: "14px", backgroundColor: routeResult.segments[segIdx + 1].lineColor, marginTop: "11px", flexShrink: 0, opacity: 0.5 }} />
+                          {stIdx === seg.stations.length - 1 && si < routeResult.segments.length - 1 && (
+                            <div style={{ height: 4, width: 14, backgroundColor: (routeResult.segments as any[])[si + 1].lineColor, marginTop: 11, flexShrink: 0, opacity: 0.5 }} />
                           )}
                         </React.Fragment>
                       );
@@ -242,38 +300,52 @@ function RouteSearch({ onStationSelect }: { onStationSelect?: (station: string) 
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
-            {/* Boarding + detailed transfer instructions */}
+            {/* Segment cards */}
             <ScrollArea className="flex-1 min-h-0">
-              <div className="space-y-1.5 pb-2">
+              <div className="space-y-2 pb-2">
                 {(routeResult.segments as any[]).map((seg: any, i: number) => {
-                  const xi = seg.transferInfo as any | undefined;
-                  const isTransferSegment = i > 0;
+                  const xi = seg.transferInfo as any;
+                  const cg = congestionMap[seg.stations[0]];
                   return (
-                    <div key={i}>
-                      {/* Basic boarding info */}
-                      <div className="text-xs flex items-center gap-2 px-1">
+                    <div key={i} className="rounded-lg border bg-card overflow-hidden">
+                      {/* Boarding info row */}
+                      <div className="flex items-center gap-2 px-3 py-2" style={{ borderLeft: `4px solid ${seg.lineColor}` }}>
                         <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: seg.lineColor }} />
-                        <span className="font-semibold">{seg.boardingInfo}</span>
-                        <span className="text-muted-foreground ml-auto">{seg.stations.length - 1}정거장</span>
+                        <span className="text-xs font-semibold flex-1">{seg.boardingInfo}</span>
+                        <span className="text-xs text-muted-foreground">{seg.stations.length - 1}정거장</span>
                       </div>
 
-                      {/* Detailed transfer info from CSV */}
-                      {isTransferSegment && xi && (
-                        <div className="ml-5 mt-1 mb-0.5 rounded-lg border bg-muted/40 p-2 text-xs space-y-0.5">
-                          <div className="font-semibold text-foreground/80 flex items-center gap-1.5">
+                      {/* Congestion badge */}
+                      {cg && (
+                        <div className="px-3 pb-2 pt-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground flex-shrink-0">현재 혼잡도</span>
+                            <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="h-full rounded-full transition-all" style={{ width: `${cg.pct}%`, backgroundColor: cg.color }} />
+                            </div>
+                            <span className="text-xs font-bold flex-shrink-0" style={{ color: cg.color }}>{cg.label}</span>
+                            <span className="text-xs text-muted-foreground flex-shrink-0">({cg.value}%)</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Transfer detail */}
+                      {i > 0 && xi && (
+                        <div className="mx-3 mb-2 rounded-lg bg-muted/50 p-2 text-xs space-y-1">
+                          <div className="font-semibold text-foreground/70 flex items-center gap-1.5">
                             <span>🔀</span>
-                            <span>{xi.fromStation}역 환승 상세 안내</span>
+                            <span>{xi.fromStation}역 환승 안내</span>
                             <span className="ml-auto font-normal text-muted-foreground">⏱ {xi.time}</span>
                           </div>
                           <div className="text-muted-foreground">
-                            <span className="font-medium text-foreground/70">하차:</span>{" "}
-                            {xi.fromLine} · <span className="font-medium">{xi.alightDirection}</span> ·{" "}
-                            <span className="text-blue-600 font-semibold">{xi.alightCar}호차 {xi.alightDoor}번 문</span>으로 내리기
+                            <span className="font-medium text-foreground/60">하차</span>{" "}
+                            {xi.fromLine}호선 · {xi.alightDirection} ·{" "}
+                            <span className="text-blue-600 font-bold">{xi.alightCar}호차 {xi.alightDoor}번 문</span>
                           </div>
                           <div className="text-muted-foreground">
-                            <span className="font-medium text-foreground/70">탑승:</span>{" "}
-                            {xi.toLine} · <span className="font-medium">{xi.boardDirection}</span> ·{" "}
-                            <span className="text-green-600 font-semibold">{xi.boardCar}호차 {xi.boardDoor}번 문</span>으로 탑승
+                            <span className="font-medium text-foreground/60">탑승</span>{" "}
+                            {xi.toLine} · {xi.boardDirection} ·{" "}
+                            <span className="text-green-600 font-bold">{xi.boardCar}호차 {xi.boardDoor}번 문</span>
                           </div>
                         </div>
                       )}
@@ -286,155 +358,235 @@ function RouteSearch({ onStationSelect }: { onStationSelect?: (station: string) 
         )}
 
         {!isLoading && !routeResult && searched && (
-          <div className="text-sm text-destructive p-2 text-center">경로를 찾을 수 없습니다</div>
+          <div className="text-sm text-destructive text-center py-4">경로를 찾을 수 없습니다</div>
         )}
         {!searched && (
-          <div className="text-sm text-muted-foreground text-center py-3">출발역과 도착역을 입력하고 경로를 찾으세요</div>
+          <div className="text-sm text-muted-foreground text-center py-4">출발역·도착역을 입력하고 경로를 찾으세요</div>
         )}
       </div>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// 3. 실시간 도착 tab
-// ─────────────────────────────────────────────
-function ArrivalSearch({ onLineSelect }: { onLineSelect?: (lineId: string | null) => void }) {
+// ─────────────────────────────────────────────────────────────────
+// 3. 실시간 도착 Tab  (노선+역 종합 필터, 상행/하행, 시간순 정렬)
+// ─────────────────────────────────────────────────────────────────
+function ArrivalTab({ onLineSelect }: { onLineSelect?: (l: string | null) => void }) {
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [station, setStation] = useState<Station | null>(null);
+  const [direction, setDirection] = useState<"all" | "상행" | "하행">("all");
 
-  const { data: arrivals, isLoading, refetch } = useGetRealtimeArrival(
+  const { data: rawArrivals, isLoading, refetch } = useGetRealtimeArrival(
     station?.name || "",
     { query: { enabled: !!station, queryKey: getGetRealtimeArrivalQueryKey(station?.name || ""), refetchInterval: 30000 } }
   );
 
-  const handleLineSelect = (lineId: string) => {
-    const next = selectedLine === lineId ? null : lineId;
+  // Filter arrivals: by selected line + direction, sorted by arrival time
+  const arrivals = React.useMemo(() => {
+    if (!rawArrivals?.arrivals) return [];
+    let list = rawArrivals.arrivals as any[];
+
+    // Filter by selected line
+    if (selectedLine) {
+      const targetLineName = LINE_NAMES[selectedLine] || "";
+      list = list.filter(a =>
+        a.lineKey === selectedLine ||
+        a.line === targetLineName ||
+        a.line?.includes(selectedLine)
+      );
+    }
+
+    // Filter by direction
+    if (direction !== "all") {
+      list = list.filter(a => {
+        const d = (a.updown || a.direction || "").trim();
+        return d.includes(direction) || d === direction;
+      });
+    }
+
+    // Already sorted by remainingSec from backend, but re-sort just in case
+    return [...list].sort((a, b) => (a.remainingSec ?? 9999) - (b.remainingSec ?? 9999));
+  }, [rawArrivals, selectedLine, direction]);
+
+  const pickLine = (id: string) => {
+    const next = selectedLine === id ? null : id;
     setSelectedLine(next);
     onLineSelect?.(next);
     setStation(null);
+    setDirection("all");
+  };
+
+  const clearAll = () => {
+    setSelectedLine(null);
+    onLineSelect?.(null);
+    setStation(null);
+    setDirection("all");
   };
 
   return (
     <div className="flex flex-col gap-2 h-full overflow-hidden">
+      {/* Step 1: Line */}
       <div className="flex-shrink-0">
-        <p className="text-xs text-muted-foreground mb-1.5 font-medium">① 노선 선택</p>
+        <p className="text-xs text-muted-foreground mb-1 font-medium">① 노선</p>
         <div className="flex flex-wrap gap-1">
-          {Object.keys(LINE_NAMES).map(lineId => (
-            <button key={lineId} onClick={() => handleLineSelect(lineId)}
+          {Object.keys(LINE_NAMES).map(id => (
+            <button key={id} onClick={() => pickLine(id)}
               className="px-2.5 py-1 rounded-full text-xs font-bold border-2 transition-all"
               style={{
-                backgroundColor: selectedLine === lineId ? LINE_COLORS[lineId] : "transparent",
-                color: selectedLine === lineId ? "#fff" : LINE_COLORS[lineId],
-                borderColor: LINE_COLORS[lineId],
-              }}>{LINE_NAMES[lineId]}</button>
+                backgroundColor: selectedLine === id ? LINE_COLORS[id] : "transparent",
+                color: selectedLine === id ? "#fff" : LINE_COLORS[id],
+                borderColor: LINE_COLORS[id],
+              }}>{LINE_NAMES[id]}</button>
           ))}
+          {selectedLine && (
+            <button onClick={clearAll} className="px-2.5 py-1 rounded-full text-xs border-2 border-gray-200 text-gray-500 hover:bg-gray-100">초기화</button>
+          )}
         </div>
       </div>
 
+      {/* Step 2: Station search */}
       {selectedLine && (
         <div className="flex-shrink-0">
-          <p className="text-xs text-muted-foreground mb-1.5 font-medium">② 역 선택</p>
+          <p className="text-xs text-muted-foreground mb-1 font-medium">② 역</p>
           <div className="flex gap-2">
             <div className="flex-1">
-              <StationSearchInput placeholder={`${LINE_NAMES[selectedLine]} 역 검색...`} value={station?.name || ""} lineFilter={selectedLine} onSelect={(st) => setStation(st)} />
+              <StationInput
+                placeholder={`${LINE_NAMES[selectedLine]} 역 검색...`}
+                value={station?.name || ""}
+                lineFilter={selectedLine}
+                onSelect={st => { setStation(st); setDirection("all"); }}
+              />
             </div>
-            {station && <Button variant="outline" size="default" className="h-11 flex-shrink-0" onClick={() => refetch()}>새로고침</Button>}
+            {station && (
+              <Button variant="outline" size="default" className="h-11 flex-shrink-0 px-3" onClick={() => refetch()}>
+                ↺
+              </Button>
+            )}
           </div>
         </div>
       )}
 
+      {/* Step 3: Direction filter — shown only when station is selected */}
+      {station && (
+        <div className="flex-shrink-0 flex items-center gap-2">
+          <p className="text-xs text-muted-foreground font-medium">③ 방향</p>
+          <div className="flex gap-1">
+            {(["all", "상행", "하행"] as const).map(d => (
+              <button key={d} onClick={() => setDirection(d)}
+                className="px-3 py-1 rounded-full text-xs font-bold border-2 transition-all"
+                style={{
+                  backgroundColor: direction === d ? (selectedLine ? LINE_COLORS[selectedLine] : "#555") : "transparent",
+                  color: direction === d ? "#fff" : (selectedLine ? LINE_COLORS[selectedLine] : "#555"),
+                  borderColor: selectedLine ? LINE_COLORS[selectedLine] : "#555",
+                }}>
+                {d === "all" ? "전체" : d}
+              </button>
+            ))}
+          </div>
+          {rawArrivals?.updatedAt && (
+            <span className="text-xs text-muted-foreground ml-auto">
+              {new Date(rawArrivals.updatedAt).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Results */}
       {station && (
         <div className="flex-1 min-h-0 overflow-hidden">
-          <div className="flex items-center gap-2 mb-1.5">
-            <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor: selectedLine ? LINE_COLORS[selectedLine] : "#888" }}>
-              {station.name}역
-            </span>
-            <span className="text-xs text-muted-foreground">실시간 도착 정보</span>
-          </div>
           <ScrollArea className="h-full">
-            {isLoading && <div className="text-sm text-muted-foreground text-center py-3">도착 정보 불러오는 중...</div>}
-            {arrivals && arrivals.arrivals.length === 0 && (
-              <div className="text-sm text-muted-foreground text-center py-4">현재 도착 예정 열차가 없습니다</div>
+            {isLoading && <div className="text-sm text-muted-foreground text-center py-4">도착 정보 불러오는 중...</div>}
+
+            {!isLoading && arrivals.length === 0 && (
+              <div className="text-sm text-muted-foreground text-center py-5 space-y-1">
+                <div>도착 예정 열차가 없습니다</div>
+                {direction !== "all" && <div className="text-xs">방향 필터를 '전체'로 변경해 보세요</div>}
+              </div>
             )}
-            {arrivals && arrivals.arrivals.map((arr: any, i: number) => (
-              <div key={i} className="p-2.5 border rounded-lg mb-1.5 bg-card flex items-center gap-3">
-                <div className="flex-shrink-0 flex flex-col items-center">
-                  <span className="text-2xl">🚇</span>
-                  <span className="text-white text-xs font-bold px-1.5 py-0.5 rounded-full mt-0.5" style={{ backgroundColor: arr.lineColor || "#888" }}>
-                    {arr.line}
-                  </span>
+
+            {arrivals.map((arr: any, i: number) => (
+              <div key={i} className="flex items-center gap-3 p-2.5 border rounded-lg mb-1.5 bg-card"
+                style={{ borderLeft: `4px solid ${arr.lineColor || "#888"}` }}>
+                {/* Rank badge */}
+                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground">
+                  {i + 1}
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-bold truncate flex items-center gap-1.5">
-                    {arr.destination}행
-                    {arr.isExpress && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">급행</span>}
+                    <span>{arr.destination}행</span>
+                    {arr.isExpress && <span className="text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded-full font-bold">급행</span>}
+                    {arr.isLastTrain && <span className="text-xs bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full font-bold">막차</span>}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">{arr.direction} · {arr.currentStation}출발</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-2 mt-0.5">
+                    <span className="font-medium px-1.5 py-0.5 rounded text-white text-[10px]"
+                      style={{ backgroundColor: arr.lineColor || "#888" }}>{arr.line}</span>
+                    <span>{arr.updown || arr.direction}</span>
+                    <span>·</span>
+                    <span>{arr.currentStation} 출발</span>
+                  </div>
                 </div>
+
                 <div className="text-right flex-shrink-0">
-                  <div className="text-sm font-bold text-primary">{arr.remainingTime}</div>
-                  {arr.isLastTrain && <div className="text-xs text-destructive font-semibold">막차</div>}
+                  <div className="text-sm font-bold text-primary leading-tight">{arr.remainingTime}</div>
                 </div>
               </div>
             ))}
-            {arrivals?.updatedAt && (
-              <div className="text-xs text-muted-foreground text-right pt-1 pb-2">
-                업데이트: {new Date(arrivals.updatedAt).toLocaleTimeString("ko-KR")}
-              </div>
-            )}
           </ScrollArea>
         </div>
       )}
 
       {!selectedLine && (
-        <div className="text-sm text-muted-foreground text-center py-4">노선을 선택하면 역별 실시간 도착 정보를 확인할 수 있습니다</div>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-sm text-muted-foreground text-center">
+            <div className="text-2xl mb-2">🚇</div>
+            <div>노선을 선택하면</div>
+            <div>실시간 도착 정보를 확인할 수 있습니다</div>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// Shared: Station search input
-// ─────────────────────────────────────────────
-function StationSearchInput({
-  placeholder, onSelect, value: initialValue = "", lineFilter,
+// ─────────────────────────────────────────────────────────────────
+// Shared: station search input with dropdown
+// ─────────────────────────────────────────────────────────────────
+function StationInput({
+  placeholder, onSelect, value: externalValue = "", lineFilter,
 }: {
   placeholder: string;
   onSelect: (st: Station) => void;
   value?: string;
   lineFilter?: string;
 }) {
-  const [query, setQuery] = useState(initialValue);
+  const [q, setQ] = useState(externalValue);
   const [open, setOpen] = useState(false);
-  const debouncedQuery = useDebounce(query, 250);
+  const dq = useDebounce(q, 250);
 
-  React.useEffect(() => { setQuery(initialValue); }, [initialValue]);
+  useEffect(() => { setQ(externalValue); }, [externalValue]);
 
   const { data: stations } = useSearchStations(
-    { q: debouncedQuery, line: lineFilter },
-    { query: { enabled: debouncedQuery.length > 0, queryKey: getSearchStationsQueryKey({ q: debouncedQuery, line: lineFilter }) } }
+    { q: dq, line: lineFilter },
+    { query: { enabled: dq.length > 0, queryKey: getSearchStationsQueryKey({ q: dq, line: lineFilter }) } }
   );
 
   return (
     <div className="relative w-full">
       <Input
-        placeholder={placeholder}
-        value={query}
-        onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-        onFocus={() => debouncedQuery.length > 0 && setOpen(true)}
-        onBlur={() => setTimeout(() => setOpen(false), 200)}
+        placeholder={placeholder} value={q} autoComplete="off"
+        onChange={e => { setQ(e.target.value); setOpen(true); }}
+        onFocus={() => dq.length > 0 && setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 180)}
         className="h-11 text-base"
-        autoComplete="off"
       />
       {open && stations && stations.length > 0 && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-popover border rounded-lg shadow-xl z-50 max-h-56 overflow-y-auto">
-          {stations.slice(0, 20).map((st) => (
+        <div className="absolute top-full left-0 w-full mt-1 bg-popover border rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
+          {stations.slice(0, 20).map(st => (
             <div key={st.id}
               className="px-4 py-2.5 hover:bg-accent cursor-pointer flex items-center gap-3 text-sm"
-              onMouseDown={() => { setQuery(st.name); onSelect(st); setOpen(false); }}
-            >
-              <span className="inline-block w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: st.lineColor }} />
+              onMouseDown={() => { setQ(st.name); onSelect(st); setOpen(false); }}>
+              <span className="w-3 h-3 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: st.lineColor }} />
               <span className="font-semibold">{st.name}</span>
               <span className="text-xs text-muted-foreground ml-auto">{st.line}</span>
             </div>
