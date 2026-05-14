@@ -45,7 +45,7 @@ interface Props {
 
 export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
   return (
-    <div className="h-full flex flex-col px-3 pt-2 pb-2">
+    <div className="h-full flex flex-col px-3 pt-2 pb-2 text-[20px]">
       <Tabs defaultValue="route" className="w-full h-full flex flex-col">
         <TabsList className="grid w-full grid-cols-3 mb-2 flex-shrink-0 h-10">
           <TabsTrigger value="line" className="text-sm font-semibold" data-testid="tab-line">노선 선택</TabsTrigger>
