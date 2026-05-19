@@ -44,11 +44,13 @@ interface Props {
   onStationClick: (station: string) => void;
   selectedLine?: string | null;
   onLineSelect?: (line: string | null) => void;
+  highlightStation?: { name: string; lineNumber: string } | null;
 }
 
-export default function MapViewer({ onStationClick, selectedLine, onLineSelect }: Props) {
+export default function MapViewer({ onStationClick, selectedLine, onLineSelect, highlightStation }: Props) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
   const [showToilets, setShowToilets] = useState(false);
+  const [stationLabel, setStationLabel] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -59,7 +61,18 @@ export default function MapViewer({ onStationClick, selectedLine, onLineSelect }
 
   useEffect(() => {
     setTransform({ x: 0, y: 0, scale: 1 });
+    setStationLabel(null);
   }, [selectedLine]);
+
+  useEffect(() => {
+    if (!highlightStation) return;
+    const { name, lineNumber } = highlightStation;
+    onLineSelect?.(lineNumber);
+    setTransform({ x: 0, y: 0, scale: 2.5 });
+    setStationLabel(name);
+    const timer = setTimeout(() => setStationLabel(null), 4000);
+    return () => clearTimeout(timer);
+  }, [highlightStation]);
 
   const handlePointerDown = (e: React.PointerEvent) => {
     isDragging.current = true;
@@ -212,6 +225,15 @@ export default function MapViewer({ onStationClick, selectedLine, onLineSelect }
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
               <div className="px-4 py-1 rounded-full text-white text-sm font-bold shadow-lg" style={{ backgroundColor: LINE_COLORS[selectedLine] || "#555" }}>
                 {LINE_NAMES[selectedLine] || selectedLine}
+              </div>
+            </div>
+          )}
+
+          {stationLabel && (
+            <div className="absolute top-10 left-1/2 -translate-x-1/2 z-10 pointer-events-none animate-pulse">
+              <div className="px-4 py-1.5 rounded-full bg-white text-gray-800 text-sm font-bold shadow-lg border-2 border-gray-300 flex items-center gap-2">
+                <span>🔍</span>
+                <span>{stationLabel}역</span>
               </div>
             </div>
           )}

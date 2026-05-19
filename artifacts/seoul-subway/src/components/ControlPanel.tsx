@@ -74,9 +74,10 @@ interface Station { id: string; name: string; line: string; lineNumber: string; 
 interface Props {
   onLineSelect?: (lineId: string | null) => void;
   onStationSelect?: (station: string) => void;
+  onStationHighlight?: (name: string, lineNumber: string) => void;
 }
 
-export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
+export default function ControlPanel({ onLineSelect, onStationSelect, onStationHighlight }: Props) {
   return (
     <div className="h-full flex flex-col px-3 pt-2 pb-2">
       <Tabs defaultValue="route" className="w-full h-full flex flex-col">
@@ -87,7 +88,7 @@ export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
         </TabsList>
         <div className="flex-1 overflow-hidden relative min-h-0">
           <TabsContent value="line" className="absolute inset-0 m-0 overflow-auto">
-            <LineTab onLineSelect={onLineSelect} />
+            <LineTab onLineSelect={onLineSelect} onStationHighlight={onStationHighlight} />
           </TabsContent>
           <TabsContent value="route" className="absolute inset-0 m-0 overflow-hidden">
             <RouteTab />
@@ -104,7 +105,13 @@ export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
 // ─────────────────────────────────────────────────────────────────
 // 1. 노선 선택 Tab
 // ─────────────────────────────────────────────────────────────────
-function LineTab({ onLineSelect }: { onLineSelect?: (l: string | null) => void }) {
+function LineTab({
+  onLineSelect,
+  onStationHighlight,
+}: {
+  onLineSelect?: (l: string | null) => void;
+  onStationHighlight?: (name: string, lineNumber: string) => void;
+}) {
   const [selected, setSelected] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const dq = useDebounce(q, 250);
@@ -117,6 +124,11 @@ function LineTab({ onLineSelect }: { onLineSelect?: (l: string | null) => void }
   const pick = (id: string) => {
     const next = selected === id ? null : id;
     setSelected(next); onLineSelect?.(next); setQ("");
+  };
+
+  const selectStation = (st: { name: string; lineNumber: string }) => {
+    setQ("");
+    onStationHighlight?.(st.name, st.lineNumber);
   };
 
   return (
@@ -137,11 +149,20 @@ function LineTab({ onLineSelect }: { onLineSelect?: (l: string | null) => void }
         )}
       </div>
       <div className="relative">
-        <Input placeholder={selected ? `${LINE_NAMES[selected]} 역 검색...` : "역 이름 검색..."} value={q} onChange={e => setQ(e.target.value)} className="h-11 text-base" />
+        <Input
+          placeholder={selected ? `${LINE_NAMES[selected]} 역 검색...` : "역 이름 검색 후 선택하면 지도가 확대됩니다"}
+          value={q}
+          onChange={e => setQ(e.target.value)}
+          className="h-11 text-base"
+        />
         {stations && stations.length > 0 && q.length > 0 && (
           <div className="absolute top-full left-0 w-full mt-1 bg-popover border rounded-lg shadow-xl z-50 max-h-44 overflow-y-auto">
             {stations.slice(0, 15).map(st => (
-              <div key={st.id} className="px-4 py-2.5 hover:bg-accent cursor-pointer flex items-center gap-3 text-sm">
+              <div
+                key={st.id}
+                onClick={() => selectStation(st)}
+                className="px-4 py-2.5 hover:bg-accent cursor-pointer flex items-center gap-3 text-sm"
+              >
                 <span className="w-3 h-3 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: st.lineColor }} />
                 <span className="font-medium">{st.name}</span>
                 <span className="text-xs text-muted-foreground ml-auto">{st.line}</span>

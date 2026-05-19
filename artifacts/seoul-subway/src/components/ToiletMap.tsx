@@ -161,23 +161,11 @@ export default function ToiletMap({ onClose }: Props) {
   return (
     <div className="absolute inset-0 z-50 flex flex-col bg-white">
 
-      {/* ── 슬림 타이틀바 (파란색 없음) ── */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-3 py-1.5 bg-white border-b shadow-sm">
-        <span className="text-sm">🚻</span>
-        <span className="text-sm font-semibold text-gray-700">공중화장실 지도</span>
-        {loading && <span className="text-xs text-gray-400 animate-pulse">로딩 중...</span>}
-        <button
-          onClick={onClose}
-          className="ml-auto w-7 h-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 text-lg transition-all"
-          title="닫기"
-        >×</button>
-      </div>
-
       {/* ── 지도 ── */}
       <div className="flex-1 min-h-0 relative" ref={mapRef} />
 
-      {/* ── 정보 바 (내 위치 + 화장실 개수 + 내 위치로 버튼) ── */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-gray-50 border-t text-xs flex-wrap">
+      {/* ── 정보 바 ── */}
+      <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-gray-50 border-t text-xs">
         {/* 범례 */}
         <div className="flex items-center gap-1 text-gray-500">
           <span>🚻</span>
@@ -188,18 +176,6 @@ export default function ToiletMap({ onClose }: Props) {
           <span>현재 위치</span>
         </div>
 
-        {/* 구분선 */}
-        <div className="h-3 w-px bg-gray-300" />
-
-        {/* 내 위치 좌표 */}
-        <div className="flex items-center gap-1">
-          <span className="text-gray-400">📍</span>
-          <span className={gpsStatus === "ok" ? "text-gray-700 font-medium" : "text-gray-400 italic"}>
-            {gpsLabel}
-          </span>
-        </div>
-
-        {/* 구분선 */}
         <div className="h-3 w-px bg-gray-300" />
 
         {/* 주변 화장실 개수 */}
@@ -208,14 +184,22 @@ export default function ToiletMap({ onClose }: Props) {
           <span className="font-semibold text-gray-700">{loading ? "..." : `${count}개`}</span>
         </div>
 
-        {/* 내 위치로 버튼 */}
-        <button
-          onClick={recenterToUser}
-          className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 hover:border-gray-400 text-xs font-medium transition-all active:scale-95"
-        >
-          <span>📍</span>
-          <span>내 위치로</span>
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          {/* 내 위치로 버튼 */}
+          <button
+            onClick={recenterToUser}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-300 bg-white text-gray-600 hover:bg-gray-100 hover:border-gray-400 font-medium transition-all active:scale-95"
+          >
+            <span>📍</span>
+            <span>내 위치로</span>
+          </button>
+          {/* 닫기 */}
+          <button
+            onClick={onClose}
+            className="w-6 h-6 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-200 text-base transition-all"
+            title="닫기"
+          >×</button>
+        </div>
       </div>
 
       {/* ── 화장실 상세 팝업 ── */}

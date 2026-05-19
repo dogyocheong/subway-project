@@ -8,6 +8,7 @@ const MAX_PANEL_VH = 80;
 export default function Home() {
   const [selectedStation, setSelectedStation] = useState<string | null>(null);
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
+  const [highlightStation, setHighlightStation] = useState<{ name: string; lineNumber: string } | null>(null);
 
   // Panel height as a fraction of viewport height (default 40%)
   const [panelFraction, setPanelFraction] = useState(0.40);
@@ -55,6 +56,7 @@ export default function Home() {
           onStationClick={setSelectedStation}
           selectedLine={selectedLine}
           onLineSelect={setSelectedLine}
+          highlightStation={highlightStation}
         />
       </div>
 
@@ -76,6 +78,7 @@ export default function Home() {
         <ControlPanel
           onLineSelect={setSelectedLine}
           onStationSelect={setSelectedStation}
+          onStationHighlight={(name, lineNumber) => setHighlightStation({ name, lineNumber })}
         />
       </div>
     </div>
