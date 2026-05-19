@@ -9,7 +9,6 @@ import line6Img from "@assets/image_1778689762968.png";
 import line7Img from "@assets/image_1778689778332.png";
 import line8Img from "@assets/image_1778689833118.png";
 import line9Img from "@assets/image_1778689918077.png";
-import ToiletMap from "./ToiletMap";
 
 const LINE_MAP_IMAGES: Record<string, string> = {
   all: subwayAllImg,
@@ -48,7 +47,6 @@ interface Props {
 
 export default function MapViewer({ onStationClick, selectedLine, onLineSelect }: Props) {
   const [transform, setTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const [showToilets, setShowToilets] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
   const dragStart = useRef({ x: 0, y: 0 });
@@ -145,25 +143,6 @@ export default function MapViewer({ onStationClick, selectedLine, onLineSelect }
         ))}
       </div>
 
-      {/* ── Row 2: Toilet map bar ── */}
-      <div className="flex-shrink-0 flex items-center gap-2 px-2 py-1 bg-gray-50 border-b">
-        <button
-          onClick={() => setShowToilets(v => !v)}
-          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border-2 transition-all"
-          style={{
-            backgroundColor: showToilets ? "#4f86f7" : "transparent",
-            color: showToilets ? "#fff" : "#4f86f7",
-            borderColor: "#4f86f7",
-          }}
-        >
-          <span>🚻</span>
-          <span>공중화장실 지도</span>
-        </button>
-        {showToilets && (
-          <span className="text-xs text-gray-400">주변 화장실 위치를 지도로 확인합니다</span>
-        )}
-      </div>
-
       {/* ── Map area ── */}
       <div className="flex-1 overflow-hidden relative min-h-0">
         {/* Subway map image with pan/zoom */}
@@ -221,12 +200,6 @@ export default function MapViewer({ onStationClick, selectedLine, onLineSelect }
           </div>
         </div>
 
-        {/* Toilet map overlay */}
-        {showToilets && (
-          <div className="absolute inset-0 z-20">
-            <ToiletMap onClose={() => setShowToilets(false)} />
-          </div>
-        )}
       </div>
     </div>
   );
