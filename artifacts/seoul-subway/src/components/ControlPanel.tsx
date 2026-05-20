@@ -107,18 +107,10 @@ export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
 
 function CarDoorBadge({ car, door, color }: { car: string; door: string; color: string }) {
   return (
-    <div className="flex items-end gap-1 flex-shrink-0">
-      <div className="flex flex-col items-center">
-        <span className="text-2xl font-black leading-none" style={{ color }}>{car}</span>
-        <span className="text-[9px] text-muted-foreground font-medium mt-0.5">호차</span>
-      </div>
-      <div className="flex flex-col items-center pb-3">
-        <span className="text-sm font-bold text-muted-foreground">—</span>
-      </div>
-      <div className="flex flex-col items-center">
-        <span className="text-2xl font-black leading-none" style={{ color }}>{door}</span>
-        <span className="text-[9px] text-muted-foreground font-medium mt-0.5">번문</span>
-      </div>
+    <div className="flex items-center gap-1 flex-shrink-0">
+      <span className="text-2xl font-black leading-none" style={{ color }}>{car}</span>
+      <span className="text-sm font-bold text-muted-foreground px-0.5">다시</span>
+      <span className="text-2xl font-black leading-none" style={{ color }}>{door}</span>
     </div>
   );
 }
@@ -127,7 +119,7 @@ function CarDoorInline({ car, door }: { car: string; door: string }) {
   return (
     <span className="inline-flex items-baseline gap-0.5 font-bold text-foreground">
       <span>{car}</span>
-      <span className="text-muted-foreground text-[10px]">—</span>
+      <span className="text-muted-foreground font-medium">다시</span>
       <span>{door}</span>
     </span>
   );
@@ -202,8 +194,8 @@ function RouteTab() {
         parts.push(`첫 번째, ${seg.stations[0]}역에서 ${seg.line}을 탑승합니다. ${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다.`);
       } else {
         if (xi) {
-          parts.push(`${xi.fromStation}역에서 환승합니다. ${xi.alightCar}호차 ${xi.alightDoor}번 문으로 내리세요. ${xi.alightDirection} 방향으로 이동하면 ${seg.line} 승강장이 나옵니다. 환승 소요시간은 약 ${xi.time}입니다.`);
-          parts.push(`${seg.line} ${xi.boardDirection} 방향 ${xi.boardCar}호차 ${xi.boardDoor}번 문에 탑승합니다. ${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다.`);
+          parts.push(`${xi.fromStation}역에서 환승합니다. ${xi.alightCar}다시${xi.alightDoor}로 내리세요. ${xi.alightDirection} 방향으로 이동하면 ${seg.line} 승강장이 나옵니다. 환승 소요시간은 약 ${xi.time}입니다.`);
+          parts.push(`${seg.line} ${xi.boardDirection} 방향 ${xi.boardCar}다시${xi.boardDoor}에 탑승합니다. ${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다.`);
         } else {
           parts.push(`${seg.stations[0]}역에서 ${seg.line}으로 환승하여 ${stationCount}개 역을 이동합니다.`);
         }
@@ -337,8 +329,7 @@ function RouteTab() {
                             <div className="flex items-center gap-3 pl-5">
                               <CarDoorBadge car={xi.alightCar} door={xi.alightDoor} color="#3b82f6" />
                               <div className="text-[10px] text-blue-800 leading-relaxed">
-                                <span className="font-bold">{xi.alightCar}번째 칸</span>의{" "}
-                                <span className="font-bold">{xi.alightDoor}번 문</span> 앞에 서세요<br />
+                                <span className="font-bold">{xi.alightCar}다시{xi.alightDoor}</span> 앞에 서세요<br />
                                 <span className="text-blue-500">{xi.alightDirection}에서 오는 열차 기준</span>
                               </div>
                             </div>
@@ -367,8 +358,7 @@ function RouteTab() {
                             <div className="flex items-center gap-3 pl-5">
                               <CarDoorBadge car={xi.boardCar} door={xi.boardDoor} color="#22c55e" />
                               <div className="text-[10px] text-green-800 leading-relaxed">
-                                <span className="font-bold">{xi.boardCar}번째 칸</span>의{" "}
-                                <span className="font-bold">{xi.boardDoor}번 문</span> 앞에서 탑승<br />
+                                <span className="font-bold">{xi.boardCar}다시{xi.boardDoor}</span> 앞에서 탑승<br />
                                 <span className="text-green-500">{xi.boardDirection} 방향 {xi.toLine} 기준</span>
                               </div>
                             </div>
