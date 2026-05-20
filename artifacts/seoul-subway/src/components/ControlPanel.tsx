@@ -109,7 +109,7 @@ function CarDoorBadge({ car, door, color }: { car: string; door: string; color: 
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
       <span className="text-2xl font-black leading-none" style={{ color }}>{car}</span>
-      <span className="text-sm font-bold text-muted-foreground px-0.5">다시</span>
+      <span className="text-lg font-black text-muted-foreground px-0.5">-</span>
       <span className="text-2xl font-black leading-none" style={{ color }}>{door}</span>
     </div>
   );
@@ -119,7 +119,7 @@ function CarDoorInline({ car, door }: { car: string; door: string }) {
   return (
     <span className="inline-flex items-baseline gap-0.5 font-bold text-foreground">
       <span>{car}</span>
-      <span className="text-muted-foreground font-medium">다시</span>
+      <span className="text-muted-foreground">-</span>
       <span>{door}</span>
     </span>
   );
@@ -191,18 +191,28 @@ function RouteTab() {
       const lastSt = seg.stations[seg.stations.length - 1];
 
       if (i === 0) {
-        parts.push(`첫 번째, ${seg.stations[0]}역에서 ${seg.line}을 탑승합니다. ${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다.`);
+        parts.push(`첫 번째 구간입니다. ${seg.stations[0]}역 승강장으로 이동하세요.`);
+        parts.push(`${seg.line} ${seg.stations[seg.stations.length - 1]} 방향 열차를 탑승합니다.`);
+        parts.push(`스크린도어 안전선 안쪽에서 대기하시고, 안내 방송에 따라 열차에 탑승하세요.`);
+        parts.push(`${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다. 안내 방송과 점자 스티커를 통해 역을 확인하세요.`);
       } else {
         if (xi) {
-          parts.push(`${xi.fromStation}역에서 환승합니다. ${xi.alightCar}다시${xi.alightDoor}로 내리세요. ${xi.alightDirection} 방향으로 이동하면 ${seg.line} 승강장이 나옵니다. 환승 소요시간은 약 ${xi.time}입니다.`);
-          parts.push(`${seg.line} ${xi.boardDirection} 방향 ${xi.boardCar}다시${xi.boardDoor}에 탑승합니다. ${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다.`);
+          parts.push(`다음은 ${xi.fromStation}역에서 ${xi.fromLine}호선에서 ${xi.toLine}으로 환승하는 구간입니다.`);
+          parts.push(`열차가 ${xi.fromStation}역에 정차하기 전, 미리 ${xi.alightDirection}에서 오는 열차 기준으로, ${xi.alightCar}다시 ${xi.alightDoor} 앞에 서 계세요.`);
+          parts.push(`문이 열리면 내리세요. 내리신 후 잠시 멈추고, 역내 안내 방송을 확인하세요.`);
+          parts.push(`${xi.alightDirection} 방향으로 이동하세요. ${xi.toLine} 환승 통로 안내판을 따라 이동하면 됩니다. 바닥의 점자 유도블록을 따라가세요.`);
+          parts.push(`개찰구 통과 없이 환승 가능합니다. 환승 통로 이동 소요시간은 약 ${xi.time}입니다.`);
+          parts.push(`${xi.toLine} 승강장에 도착하면, ${xi.boardDirection} 방향 열차를 기다리세요.`);
+          parts.push(`스크린도어 기준으로 ${xi.boardCar}다시 ${xi.boardDoor} 앞에 자리를 잡으세요. 탑승 위치에서 대기하시면 됩니다.`);
+          parts.push(`탑승 후 ${stationCount}개 역을 이동합니다.`);
         } else {
-          parts.push(`${seg.stations[0]}역에서 ${seg.line}으로 환승하여 ${stationCount}개 역을 이동합니다.`);
+          parts.push(`${seg.stations[0]}역에서 ${seg.line}으로 환승합니다. 안내 방송을 따라 환승 통로로 이동하세요.`);
+          parts.push(`${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다.`);
         }
       }
 
       if (i === segs.length - 1) {
-        parts.push(`${lastSt}역에 최종 도착합니다. 안전하게 이동하세요.`);
+        parts.push(`${lastSt}역이 최종 목적지입니다. 열차가 정차하면 안전하게 하차하세요. 출구 번호는 역내 안내 방송과 점자 안내판을 확인하시기 바랍니다. 안전하게 도착하셨습니다.`);
       }
     });
 
@@ -329,7 +339,7 @@ function RouteTab() {
                             <div className="flex items-center gap-3 pl-5">
                               <CarDoorBadge car={xi.alightCar} door={xi.alightDoor} color="#3b82f6" />
                               <div className="text-[10px] text-blue-800 leading-relaxed">
-                                <span className="font-bold">{xi.alightCar}다시{xi.alightDoor}</span> 앞에 서세요<br />
+                                <span className="font-bold">{xi.alightCar} - {xi.alightDoor}</span> 앞에 서세요<br />
                                 <span className="text-blue-500">{xi.alightDirection}에서 오는 열차 기준</span>
                               </div>
                             </div>
@@ -358,7 +368,7 @@ function RouteTab() {
                             <div className="flex items-center gap-3 pl-5">
                               <CarDoorBadge car={xi.boardCar} door={xi.boardDoor} color="#22c55e" />
                               <div className="text-[10px] text-green-800 leading-relaxed">
-                                <span className="font-bold">{xi.boardCar}다시{xi.boardDoor}</span> 앞에서 탑승<br />
+                                <span className="font-bold">{xi.boardCar} - {xi.boardDoor}</span> 앞에서 탑승<br />
                                 <span className="text-green-500">{xi.boardDirection} 방향 {xi.toLine} 기준</span>
                               </div>
                             </div>
