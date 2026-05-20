@@ -116,14 +116,12 @@ function RouteTab() {
     { query: { enabled: searched && !!from && !!to, queryKey: getFindRouteQueryKey({ from: from?.name || "", to: to?.name || "" }) } }
   );
 
-  // Fetch congestion for each segment when route result arrives
   useEffect(() => {
     if (!routeResult) return;
     const dayType = getDayType();
     const slot = getCurrentTimeSlot();
     const segs = routeResult.segments as any[];
     const newMap: Record<string, any> = {};
-
     Promise.all(
       segs.map(async (seg: any) => {
         const boardStation = seg.stations[0];
@@ -132,13 +130,12 @@ function RouteTab() {
           const data = await resp.json();
           if (data.congestion) {
             const dirs = data.congestion[dayType] || {};
-            // Average 상선 + 하선 or pick either
             const vals: number[] = [];
             for (const dir of Object.values(dirs) as any[]) {
               const v = dir[slot];
               if (v != null) vals.push(v);
             }
-            const avg = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+            const avg = vals.length ? vals.reduce((a: number, b: number) => a + b, 0) / vals.length : null;
             if (avg != null) {
               const lv = congestionLevel(avg);
               newMap[seg.stations[0]] = { ...lv, value: Math.round(avg) };
@@ -159,15 +156,35 @@ function RouteTab() {
     if (isSpeaking) { window.speechSynthesis.cancel(); setIsSpeaking(false); return; }
 
     const segs = routeResult.segments as any[];
-    const parts = segs.map((seg: any, i: number) => {
+    const parts: string[] = [];
+
+    parts.push(`${from?.name}역에서 ${to?.name}역까지 경로를 안내합니다.`);
+    parts.push(`총 ${routeResult.totalStations}개 역, 환승 ${routeResult.transferCount}회, 예상 소요시간 약 ${routeResult.estimatedTime}분입니다.`);
+
+    segs.forEach((seg: any, i: number) => {
       const xi = seg.transferInfo as any;
-      if (i === 0) return `${seg.stations[0]}역에서 ${seg.line}을 탑승합니다.`;
-      if (xi) return `${xi.fromStation}역에서 ${xi.alightCar}호차 ${xi.alightDoor}번 문으로 내리신 후, ${xi.toLine}으로 환승하여 ${xi.boardDirection} 방향 ${xi.boardCar}호차 ${xi.boardDoor}번 문에서 탑승하세요. 환승 소요시간 약 ${xi.time}.`;
-      return `${seg.stations[0]}역에서 ${seg.line}으로 환승합니다.`;
+      const stationCount = seg.stations.length - 1;
+      const lastSt = seg.stations[seg.stations.length - 1];
+
+      if (i === 0) {
+        parts.push(`첫 번째, ${seg.stations[0]}역에서 ${seg.line}을 탑승합니다. ${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다.`);
+      } else {
+        if (xi) {
+          parts.push(`${xi.fromStation}역에서 환승합니다. ${xi.alightCar}호차 ${xi.alightDoor}번 문으로 내리세요. ${xi.alightDirection} 방향으로 이동하면 ${seg.line} 승강장이 나옵니다. 환승 소요시간은 약 ${xi.time}입니다.`);
+          parts.push(`${seg.line} ${xi.boardDirection} 방향 ${xi.boardCar}호차 ${xi.boardDoor}번 문에 탑승합니다. ${stationCount}개 역을 이동하여 ${lastSt}역에서 하차합니다.`);
+        } else {
+          parts.push(`${seg.stations[0]}역에서 ${seg.line}으로 환승하여 ${stationCount}개 역을 이동합니다.`);
+        }
+      }
+
+      if (i === segs.length - 1) {
+        parts.push(`${lastSt}역에 최종 도착합니다. 안전하게 이동하세요.`);
+      }
     });
-    const full = `${from?.name}에서 ${to?.name}까지. 총 ${routeResult.totalStations}개 역, 환승 ${routeResult.transferCount}회, 약 ${routeResult.estimatedTime}분 소요. ${parts.join(" ")} 목적지 ${to?.name}에 도착합니다.`;
+
+    const full = parts.join(" ");
     const utt = new SpeechSynthesisUtterance(full);
-    utt.lang = "ko-KR"; utt.rate = 0.9;
+    utt.lang = "ko-KR"; utt.rate = 0.88;
     utt.onend = () => setIsSpeaking(false);
     utt.onerror = () => setIsSpeaking(false);
     window.speechSynthesis.speak(utt);
@@ -247,52 +264,110 @@ function RouteTab() {
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
 
-            {/* Segment cards */}
+            {/* Segment cards — 역 내 안내도 */}
             <ScrollArea className="flex-1 min-h-0">
               <div className="space-y-2 pb-2">
                 {(routeResult.segments as any[]).map((seg: any, i: number) => {
                   const xi = seg.transferInfo as any;
                   const cg = congestionMap[seg.stations[0]];
+                  const lastStation = seg.stations[seg.stations.length - 1];
+                  const stationCount = seg.stations.length - 1;
+                  const segs = routeResult.segments as any[];
+                  const nextSeg = segs[i + 1] as any | undefined;
+                  const nextXi = nextSeg?.transferInfo as any;
+
                   return (
                     <div key={i} className="rounded-lg border bg-card overflow-hidden">
-                      {/* Boarding info row */}
-                      <div className="flex items-center gap-2 px-3 py-2" style={{ borderLeft: `4px solid ${seg.lineColor}` }}>
-                        <span className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: seg.lineColor }} />
-                        <span className="text-xs font-semibold flex-1">{seg.boardingInfo}</span>
-                        <span className="text-xs text-muted-foreground">{seg.stations.length - 1}정거장</span>
-                      </div>
-
-                      {/* Congestion badge */}
-                      {cg && (
-                        <div className="px-3 pb-2 pt-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground flex-shrink-0">현재 혼잡도</span>
-                            <div className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
-                              <div className="h-full rounded-full transition-all" style={{ width: `${cg.pct}%`, backgroundColor: cg.color }} />
+                      {/* ── 환승 안내 (환승 전 역 내 동선) ─────────── */}
+                      {i > 0 && xi && (
+                        <div className="border-b bg-amber-50/60">
+                          <div className="flex items-center gap-2 px-3 py-1.5">
+                            <span className="text-sm">🔀</span>
+                            <span className="text-xs font-bold text-amber-800">{xi.fromStation}역 환승 안내</span>
+                            <span className="ml-auto text-xs text-amber-600 font-medium">⏱ {xi.time}</span>
+                          </div>
+                          <div className="px-3 pb-2 grid grid-cols-2 gap-1.5">
+                            <div className="rounded-lg bg-blue-50 border border-blue-100 p-2">
+                              <div className="text-[10px] font-bold text-blue-500 mb-1">하차</div>
+                              <div className="text-xs text-blue-800 font-medium leading-snug">
+                                {xi.alightDirection} 방향<br />
+                                <span className="font-bold">{xi.alightCar}호차 {xi.alightDoor}번 문</span>
+                              </div>
                             </div>
-                            <span className="text-xs font-bold flex-shrink-0" style={{ color: cg.color }}>{cg.label}</span>
-                            <span className="text-xs text-muted-foreground flex-shrink-0">({cg.value}%)</span>
+                            <div className="rounded-lg bg-green-50 border border-green-100 p-2">
+                              <div className="text-[10px] font-bold text-green-600 mb-1">환승 탑승</div>
+                              <div className="text-xs text-green-800 font-medium leading-snug">
+                                {xi.boardDirection} 방향<br />
+                                <span className="font-bold">{xi.boardCar}호차 {xi.boardDoor}번 문</span>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
 
-                      {/* Transfer detail */}
-                      {i > 0 && xi && (
-                        <div className="mx-3 mb-2 rounded-lg bg-muted/50 p-2 text-xs space-y-1">
-                          <div className="font-semibold text-foreground/70 flex items-center gap-1.5">
-                            <span>🔀</span>
-                            <span>{xi.fromStation}역 환승 안내</span>
-                            <span className="ml-auto font-normal text-muted-foreground">⏱ {xi.time}</span>
+                      {/* ── 탑승 라인 헤더 ─────────────────────────── */}
+                      <div className="flex items-center gap-2 px-3 py-2.5" style={{ borderLeft: `4px solid ${seg.lineColor}` }}>
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full text-white flex-shrink-0"
+                          style={{ backgroundColor: seg.lineColor }}>{seg.line}</span>
+                        <span className="text-xs font-semibold text-foreground flex-1 truncate">
+                          {seg.stations[0]} → {lastStation}
+                        </span>
+                        <span className="text-xs text-muted-foreground flex-shrink-0">{stationCount}정거장</span>
+                      </div>
+
+                      {/* ── 역 내 안내도: 탑승 단계 ─────────────────── */}
+                      <div className="mx-3 mb-2 rounded-lg border bg-muted/20 overflow-hidden">
+                        {/* 탑승 */}
+                        <div className="flex items-start gap-2.5 px-3 py-2 border-b border-dashed">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0 mt-0.5"
+                            style={{ backgroundColor: seg.lineColor }}>탑</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs font-bold">{seg.stations[0]}역 탑승</div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">{seg.boardingInfo}</div>
                           </div>
-                          <div className="text-muted-foreground">
-                            <span className="font-medium text-foreground/60">하차</span>{" "}
-                            {xi.fromLine}호선 · {xi.alightDirection} ·{" "}
-                            <span className="text-blue-600 font-bold">{xi.alightCar}호차 {xi.alightDoor}번 문</span>
+                        </div>
+
+                        {/* 이동 */}
+                        <div className="flex items-center gap-2.5 px-3 py-1.5 border-b border-dashed">
+                          <div className="w-5 flex justify-center flex-shrink-0">
+                            <div className="w-0.5 h-4 rounded-full" style={{ backgroundColor: seg.lineColor }} />
                           </div>
-                          <div className="text-muted-foreground">
-                            <span className="font-medium text-foreground/60">탑승</span>{" "}
-                            {xi.toLine} · {xi.boardDirection} ·{" "}
-                            <span className="text-green-600 font-bold">{xi.boardCar}호차 {xi.boardDoor}번 문</span>
+                          <div className="text-[10px] text-muted-foreground">{stationCount}개 역 이동</div>
+                        </div>
+
+                        {/* 하차 — 환승이 있으면 환승 안내, 마지막이면 도착 안내 */}
+                        <div className="flex items-start gap-2.5 px-3 py-2">
+                          {nextXi ? (
+                            <>
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-amber-400 text-white flex-shrink-0 mt-0.5">환</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-bold">{lastStation}역 하차 후 환승</div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5">
+                                  {nextXi.alightCar}호차 {nextXi.alightDoor}번 문으로 내리세요 · {nextXi.alightDirection} 방향 이동
+                                </div>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-green-500 text-white flex-shrink-0 mt-0.5">착</div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-bold">{lastStation}역 도착</div>
+                                <div className="text-[10px] text-muted-foreground mt-0.5">목적지에 도착합니다</div>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* ── 혼잡도 ─────────────────────────────────── */}
+                      {cg && (
+                        <div className="px-3 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-muted-foreground flex-shrink-0">현재 혼잡도</span>
+                            <div className="flex-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="h-full rounded-full transition-all" style={{ width: `${cg.pct}%`, backgroundColor: cg.color }} />
+                            </div>
+                            <span className="text-[10px] font-bold flex-shrink-0" style={{ color: cg.color }}>{cg.label}</span>
                           </div>
                         </div>
                       )}
