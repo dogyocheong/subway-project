@@ -102,6 +102,38 @@ export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Shared sub-components: car/door display
+// ─────────────────────────────────────────────────────────────────
+
+function CarDoorBadge({ car, door, color }: { car: string; door: string; color: string }) {
+  return (
+    <div className="flex items-end gap-1 flex-shrink-0">
+      <div className="flex flex-col items-center">
+        <span className="text-2xl font-black leading-none" style={{ color }}>{car}</span>
+        <span className="text-[9px] text-muted-foreground font-medium mt-0.5">호차</span>
+      </div>
+      <div className="flex flex-col items-center pb-3">
+        <span className="text-sm font-bold text-muted-foreground">—</span>
+      </div>
+      <div className="flex flex-col items-center">
+        <span className="text-2xl font-black leading-none" style={{ color }}>{door}</span>
+        <span className="text-[9px] text-muted-foreground font-medium mt-0.5">번문</span>
+      </div>
+    </div>
+  );
+}
+
+function CarDoorInline({ car, door }: { car: string; door: string }) {
+  return (
+    <span className="inline-flex items-baseline gap-0.5 font-bold text-foreground">
+      <span>{car}</span>
+      <span className="text-muted-foreground text-[10px]">—</span>
+      <span>{door}</span>
+    </span>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
 // 2. 경로 탐색 Tab  (환승 상세 + 혼잡도)
 // ─────────────────────────────────────────────────────────────────
 function RouteTab() {
@@ -278,27 +310,66 @@ function RouteTab() {
 
                   return (
                     <div key={i} className="rounded-lg border bg-card overflow-hidden">
-                      {/* ── 환승 안내 (환승 전 역 내 동선) ─────────── */}
+
+                      {/* ══ 환승 역 내 상세 안내 ════════════════════════ */}
                       {i > 0 && xi && (
-                        <div className="border-b bg-amber-50/60">
-                          <div className="flex items-center gap-2 px-3 py-1.5">
-                            <span className="text-sm">🔀</span>
-                            <span className="text-xs font-bold text-amber-800">{xi.fromStation}역 환승 안내</span>
-                            <span className="ml-auto text-xs text-amber-600 font-medium">⏱ {xi.time}</span>
+                        <div className="border-b" style={{ background: "linear-gradient(135deg,#fffbeb 0%,#fef3c7 100%)" }}>
+                          {/* 환승 헤더 */}
+                          <div className="flex items-center gap-2 px-3 py-2 border-b border-amber-200">
+                            <span className="text-base">🔀</span>
+                            <div>
+                              <span className="text-xs font-black text-amber-900">{xi.fromStation}역 환승</span>
+                              <span className="text-xs text-amber-600 ml-2">{xi.fromLine}호선 → {xi.toLine}</span>
+                            </div>
+                            <div className="ml-auto flex items-center gap-1 bg-amber-100 rounded-full px-2 py-0.5">
+                              <span className="text-[10px]">⏱</span>
+                              <span className="text-[10px] font-bold text-amber-700">약 {xi.time}</span>
+                            </div>
                           </div>
-                          <div className="px-3 pb-2 grid grid-cols-2 gap-1.5">
-                            <div className="rounded-lg bg-blue-50 border border-blue-100 p-2">
-                              <div className="text-[10px] font-bold text-blue-500 mb-1">하차</div>
-                              <div className="text-xs text-blue-800 font-medium leading-snug">
-                                {xi.alightDirection} 방향<br />
-                                <span className="font-bold">{xi.alightCar}호차 {xi.alightDoor}번 문</span>
+
+                          {/* STEP 1: 하차 위치 */}
+                          <div className="px-3 py-2 border-b border-amber-100">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="w-4 h-4 rounded-full bg-blue-500 text-white text-[9px] font-black flex items-center justify-center flex-shrink-0">1</span>
+                              <span className="text-[10px] font-bold text-blue-700 uppercase tracking-wide">하차 위치</span>
+                              <span className="text-[10px] text-blue-500 ml-1">— {xi.alightDirection} 방향 열차 탑승 시</span>
+                            </div>
+                            <div className="flex items-center gap-3 pl-5">
+                              <CarDoorBadge car={xi.alightCar} door={xi.alightDoor} color="#3b82f6" />
+                              <div className="text-[10px] text-blue-800 leading-relaxed">
+                                <span className="font-bold">{xi.alightCar}번째 칸</span>의{" "}
+                                <span className="font-bold">{xi.alightDoor}번 문</span> 앞에 서세요<br />
+                                <span className="text-blue-500">{xi.alightDirection}에서 오는 열차 기준</span>
                               </div>
                             </div>
-                            <div className="rounded-lg bg-green-50 border border-green-100 p-2">
-                              <div className="text-[10px] font-bold text-green-600 mb-1">환승 탑승</div>
-                              <div className="text-xs text-green-800 font-medium leading-snug">
-                                {xi.boardDirection} 방향<br />
-                                <span className="font-bold">{xi.boardCar}호차 {xi.boardDoor}번 문</span>
+                          </div>
+
+                          {/* STEP 2: 하차 후 이동 */}
+                          <div className="px-3 py-2 border-b border-amber-100">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-black flex items-center justify-center flex-shrink-0">2</span>
+                              <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">하차 후 이동</span>
+                            </div>
+                            <div className="pl-5 text-[10px] text-amber-800 space-y-0.5">
+                              <div>① 문이 열리면 <span className="font-bold">{xi.alightDirection} 방향</span>으로 이동하세요</div>
+                              <div>② <span className="font-bold">{xi.toLine} 환승 통로</span> 안내판을 따라가세요</div>
+                              <div>③ 개찰구를 통과하지 않고 환승 가능합니다</div>
+                            </div>
+                          </div>
+
+                          {/* STEP 3: 탑승 위치 */}
+                          <div className="px-3 py-2">
+                            <div className="flex items-center gap-1.5 mb-1.5">
+                              <span className="w-4 h-4 rounded-full bg-green-500 text-white text-[9px] font-black flex items-center justify-center flex-shrink-0">3</span>
+                              <span className="text-[10px] font-bold text-green-700 uppercase tracking-wide">환승 탑승 위치</span>
+                              <span className="text-[10px] text-green-500 ml-1">— {xi.boardDirection} 방향 열차</span>
+                            </div>
+                            <div className="flex items-center gap-3 pl-5">
+                              <CarDoorBadge car={xi.boardCar} door={xi.boardDoor} color="#22c55e" />
+                              <div className="text-[10px] text-green-800 leading-relaxed">
+                                <span className="font-bold">{xi.boardCar}번째 칸</span>의{" "}
+                                <span className="font-bold">{xi.boardDoor}번 문</span> 앞에서 탑승<br />
+                                <span className="text-green-500">{xi.boardDirection} 방향 {xi.toLine} 기준</span>
                               </div>
                             </div>
                           </div>
@@ -315,7 +386,7 @@ function RouteTab() {
                         <span className="text-xs text-muted-foreground flex-shrink-0">{stationCount}정거장</span>
                       </div>
 
-                      {/* ── 역 내 안내도: 탑승 단계 ─────────────────── */}
+                      {/* ── 역 내 안내도: 탑승·이동·하차 단계 ────────── */}
                       <div className="mx-3 mb-2 rounded-lg border bg-muted/20 overflow-hidden">
                         {/* 탑승 */}
                         <div className="flex items-start gap-2.5 px-3 py-2 border-b border-dashed">
@@ -335,15 +406,16 @@ function RouteTab() {
                           <div className="text-[10px] text-muted-foreground">{stationCount}개 역 이동</div>
                         </div>
 
-                        {/* 하차 — 환승이 있으면 환승 안내, 마지막이면 도착 안내 */}
+                        {/* 하차 */}
                         <div className="flex items-start gap-2.5 px-3 py-2">
                           {nextXi ? (
                             <>
                               <div className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold bg-amber-400 text-white flex-shrink-0 mt-0.5">환</div>
                               <div className="flex-1 min-w-0">
                                 <div className="text-xs font-bold">{lastStation}역 하차 후 환승</div>
-                                <div className="text-[10px] text-muted-foreground mt-0.5">
-                                  {nextXi.alightCar}호차 {nextXi.alightDoor}번 문으로 내리세요 · {nextXi.alightDirection} 방향 이동
+                                <div className="text-[10px] text-muted-foreground mt-0.5 flex items-center gap-1.5">
+                                  <CarDoorInline car={nextXi.alightCar} door={nextXi.alightDoor} />
+                                  <span>으로 내리세요 · {nextXi.alightDirection} 이동</span>
                                 </div>
                               </div>
                             </>
