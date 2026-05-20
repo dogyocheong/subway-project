@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -74,103 +74,29 @@ interface Station { id: string; name: string; line: string; lineNumber: string; 
 interface Props {
   onLineSelect?: (lineId: string | null) => void;
   onStationSelect?: (station: string) => void;
-  onStationHighlight?: (name: string, lineNumber: string) => void;
 }
 
-export default function ControlPanel({ onLineSelect, onStationSelect, onStationHighlight }: Props) {
+export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
   return (
     <div className="h-full flex flex-col px-3 pt-2 pb-2">
       <Tabs defaultValue="route" className="w-full h-full flex flex-col">
         <TabsList className="grid w-full grid-cols-3 mb-2 flex-shrink-0 h-10">
-          <TabsTrigger value="line" className="text-sm font-semibold">노선 선택</TabsTrigger>
           <TabsTrigger value="route" className="text-sm font-semibold">경로 탐색</TabsTrigger>
           <TabsTrigger value="arrival" className="text-sm font-semibold">실시간 도착</TabsTrigger>
+          <TabsTrigger value="mysubway" className="text-sm font-semibold">나의 지하철</TabsTrigger>
         </TabsList>
         <div className="flex-1 overflow-hidden relative min-h-0">
-          <TabsContent value="line" className="absolute inset-0 m-0 overflow-auto">
-            <LineTab onLineSelect={onLineSelect} onStationHighlight={onStationHighlight} />
-          </TabsContent>
           <TabsContent value="route" className="absolute inset-0 m-0 overflow-hidden">
             <RouteTab />
           </TabsContent>
           <TabsContent value="arrival" className="absolute inset-0 m-0 overflow-hidden">
             <ArrivalTab onLineSelect={onLineSelect} />
           </TabsContent>
+          <TabsContent value="mysubway" className="absolute inset-0 m-0 overflow-hidden">
+            <MySubwayTab />
+          </TabsContent>
         </div>
       </Tabs>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────
-// 1. 노선 선택 Tab
-// ─────────────────────────────────────────────────────────────────
-function LineTab({
-  onLineSelect,
-  onStationHighlight,
-}: {
-  onLineSelect?: (l: string | null) => void;
-  onStationHighlight?: (name: string, lineNumber: string) => void;
-}) {
-  const [selected, setSelected] = useState<string | null>(null);
-  const [q, setQ] = useState("");
-  const dq = useDebounce(q, 250);
-
-  const { data: stations } = useSearchStations(
-    { q: dq, line: selected || undefined },
-    { query: { enabled: dq.length > 0, queryKey: getSearchStationsQueryKey({ q: dq, line: selected || undefined }) } }
-  );
-
-  const pick = (id: string) => {
-    const next = selected === id ? null : id;
-    setSelected(next); onLineSelect?.(next); setQ("");
-  };
-
-  const selectStation = (st: { name: string; lineNumber: string }) => {
-    setQ("");
-    onStationHighlight?.(st.name, st.lineNumber);
-  };
-
-  return (
-    <div className="flex flex-col gap-2 h-full">
-      <div className="flex flex-wrap gap-1.5">
-        {Object.keys(LINE_NAMES).map(id => (
-          <button key={id} onClick={() => pick(id)}
-            className="px-2.5 py-1 rounded-full text-xs font-bold border-2 transition-all"
-            style={{
-              backgroundColor: selected === id ? LINE_COLORS[id] : "transparent",
-              color: selected === id ? "#fff" : LINE_COLORS[id],
-              borderColor: LINE_COLORS[id],
-            }}>{LINE_NAMES[id]}</button>
-        ))}
-        {selected && (
-          <button onClick={() => { setSelected(null); onLineSelect?.(null); }}
-            className="px-2.5 py-1 rounded-full text-xs font-bold border-2 border-gray-300 text-gray-500 hover:bg-gray-100">전체</button>
-        )}
-      </div>
-      <div className="relative">
-        <Input
-          placeholder={selected ? `${LINE_NAMES[selected]} 역 검색...` : "역 이름 검색 후 선택하면 지도가 확대됩니다"}
-          value={q}
-          onChange={e => setQ(e.target.value)}
-          className="h-11 text-base"
-        />
-        {stations && stations.length > 0 && q.length > 0 && (
-          <div className="absolute top-full left-0 w-full mt-1 bg-popover border rounded-lg shadow-xl z-50 max-h-44 overflow-y-auto">
-            {stations.slice(0, 15).map(st => (
-              <div
-                key={st.id}
-                onClick={() => selectStation(st)}
-                className="px-4 py-2.5 hover:bg-accent cursor-pointer flex items-center gap-3 text-sm"
-              >
-                <span className="w-3 h-3 rounded-full flex-shrink-0 inline-block" style={{ backgroundColor: st.lineColor }} />
-                <span className="font-medium">{st.name}</span>
-                <span className="text-xs text-muted-foreground ml-auto">{st.line}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -614,6 +540,249 @@ function StationInput({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 4. 나의 지하철 Tab  — localStorage 기반 즐겨찾기 + 실시간 도착
+// ─────────────────────────────────────────────────────────────────
+interface SavedStation {
+  id: string;
+  lineNumber: string;
+  stationName: string;
+  direction: "상행" | "하행" | "all";
+}
+
+function useLocalStorage<T>(key: string, defaultValue: T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const stored = localStorage.getItem(key);
+      return stored ? JSON.parse(stored) : defaultValue;
+    } catch {
+      return defaultValue;
+    }
+  });
+  const set = useCallback((updater: T | ((prev: T) => T)) => {
+    setValue((prev: T) => {
+      const next = typeof updater === "function" ? (updater as (p: T) => T)(prev) : updater;
+      localStorage.setItem(key, JSON.stringify(next));
+      return next;
+    });
+  }, [key]);
+  return [value, set] as const;
+}
+
+function MySubwayTab() {
+  const [saved, setSaved] = useLocalStorage<SavedStation[]>("my-subway-stations", []);
+  const [adding, setAdding] = useState(false);
+  const [formLine, setFormLine] = useState<string | null>(null);
+  const [formStation, setFormStation] = useState<Station | null>(null);
+  const [formDir, setFormDir] = useState<"상행" | "하행" | "all">("all");
+
+  const addStation = () => {
+    if (!formLine || !formStation) return;
+    const entry: SavedStation = {
+      id: `${formLine}-${formStation.name}-${formDir}-${Date.now()}`,
+      lineNumber: formLine,
+      stationName: formStation.name,
+      direction: formDir,
+    };
+    setSaved(prev => [...prev, entry]);
+    setAdding(false);
+    setFormLine(null);
+    setFormStation(null);
+    setFormDir("all");
+  };
+
+  const cancelAdd = () => {
+    setAdding(false);
+    setFormLine(null);
+    setFormStation(null);
+    setFormDir("all");
+  };
+
+  const remove = (id: string) => setSaved((prev: SavedStation[]) => prev.filter((s: SavedStation) => s.id !== id));
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      {/* Header row */}
+      <div className="flex items-center justify-between pb-2 flex-shrink-0">
+        <span className="text-xs text-muted-foreground">
+          {saved.length === 0 ? "역을 추가해 도착 정보를 모아보세요" : `${saved.length}개 역 등록됨`}
+        </span>
+        {!adding && (
+          <button
+            onClick={() => setAdding(true)}
+            className="flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold border-2 border-blue-400 text-blue-500 hover:bg-blue-50 transition-all"
+          >
+            <span>+</span> 역 추가
+          </button>
+        )}
+      </div>
+
+      {/* Add form */}
+      {adding && (
+        <div className="border rounded-lg p-3 mb-3 bg-muted/30 flex-shrink-0 space-y-2.5">
+          {/* Step 1: Line */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">① 호선 선택</p>
+            <div className="flex flex-wrap gap-1">
+              {Object.keys(LINE_NAMES).map(id => (
+                <button key={id} onClick={() => { setFormLine(id); setFormStation(null); }}
+                  className="px-2 py-0.5 rounded-full text-xs font-bold border-2 transition-all"
+                  style={{
+                    backgroundColor: formLine === id ? LINE_COLORS[id] : "transparent",
+                    color: formLine === id ? "#fff" : LINE_COLORS[id],
+                    borderColor: LINE_COLORS[id],
+                  }}>{LINE_NAMES[id]}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Step 2: Station */}
+          {formLine && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">② 역 검색</p>
+              <StationInput
+                placeholder={`${LINE_NAMES[formLine]} 역 검색...`}
+                value={formStation?.name || ""}
+                lineFilter={formLine}
+                onSelect={st => setFormStation(st)}
+              />
+            </div>
+          )}
+
+          {/* Step 3: Direction */}
+          {formStation && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">③ 방향</p>
+              <div className="flex gap-1.5">
+                {(["all", "상행", "하행"] as const).map(d => (
+                  <button key={d} onClick={() => setFormDir(d)}
+                    className="px-3 py-1 rounded-full text-xs font-bold border-2 transition-all"
+                    style={{
+                      backgroundColor: formDir === d ? (formLine ? LINE_COLORS[formLine] : "#555") : "transparent",
+                      color: formDir === d ? "#fff" : (formLine ? LINE_COLORS[formLine] : "#555"),
+                      borderColor: formLine ? LINE_COLORS[formLine] : "#555",
+                    }}>
+                    {d === "all" ? "전체" : d}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-2 pt-1">
+            <button
+              onClick={addStation}
+              disabled={!formLine || !formStation}
+              className="flex-1 py-1.5 rounded-lg text-xs font-bold text-white transition-all disabled:opacity-40"
+              style={{ backgroundColor: formLine ? LINE_COLORS[formLine] : "#888" }}
+            >추가</button>
+            <button onClick={cancelAdd}
+              className="flex-1 py-1.5 rounded-lg text-xs font-bold border border-gray-300 text-gray-500 hover:bg-gray-100">
+              취소
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Saved station cards */}
+      {saved.length === 0 && !adding && (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-sm text-muted-foreground text-center">
+            <div className="text-3xl mb-2">🚉</div>
+            <div className="font-medium">즐겨찾는 역이 없습니다</div>
+            <div className="text-xs mt-1">위 '역 추가' 버튼으로 역을 등록하세요</div>
+          </div>
+        </div>
+      )}
+
+      {saved.length > 0 && (
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ScrollArea className="h-full">
+            <div className="space-y-3 pb-2">
+              {saved.map(entry => (
+                <MyStationCard key={entry.id} entry={entry} onRemove={() => remove(entry.id)} />
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MyStationCard({ entry, onRemove }: { entry: SavedStation; onRemove: () => void }) {
+  const { data: rawArrivals, isLoading } = useGetRealtimeArrival(entry.stationName, {
+    query: { enabled: true, refetchInterval: 30000, queryKey: getGetRealtimeArrivalQueryKey(entry.stationName) }
+  });
+
+  const arrivals = React.useMemo(() => {
+    if (!rawArrivals?.arrivals) return [];
+    let list = rawArrivals.arrivals as any[];
+    const targetLineName = LINE_NAMES[entry.lineNumber] || "";
+    list = list.filter(a =>
+      a.lineKey === entry.lineNumber ||
+      a.line === targetLineName ||
+      a.line?.includes(entry.lineNumber)
+    );
+    if (entry.direction !== "all") {
+      list = list.filter(a => {
+        const d = (a.updown || a.direction || "").trim();
+        return d.includes(entry.direction) || d === entry.direction;
+      });
+    }
+    return [...list]
+      .sort((a, b) => (a.remainingSec ?? 9999) - (b.remainingSec ?? 9999))
+      .slice(0, 3);
+  }, [rawArrivals, entry.lineNumber, entry.direction]);
+
+  const lineColor = LINE_COLORS[entry.lineNumber] || "#888";
+  const lineName = LINE_NAMES[entry.lineNumber] || entry.lineNumber;
+  const dirLabel = entry.direction === "all" ? "전체" : entry.direction;
+
+  return (
+    <div className="border rounded-lg overflow-hidden shadow-sm">
+      {/* Colored header */}
+      <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: lineColor }}>
+        <span className="text-white font-bold text-sm">{lineName}</span>
+        <span className="text-white/60 text-sm">·</span>
+        <span className="text-white font-bold text-sm">{entry.stationName}역</span>
+        <span className="text-white/70 text-xs ml-0.5 bg-white/20 rounded px-1">{dirLabel}</span>
+        <button
+          onClick={onRemove}
+          className="ml-auto w-5 h-5 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white text-xs transition-all"
+        >×</button>
+      </div>
+
+      {/* Arrival rows */}
+      <div className="divide-y bg-card">
+        {isLoading && (
+          <div className="px-3 py-2.5 text-sm text-muted-foreground">불러오는 중...</div>
+        )}
+        {!isLoading && arrivals.length === 0 && (
+          <div className="px-3 py-2.5 text-sm text-muted-foreground">도착 예정 열차 없음</div>
+        )}
+        {arrivals.map((arr: any, i: number) => (
+          <div key={i} className="flex items-center gap-3 px-3 py-2">
+            <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground flex-shrink-0">{i + 1}</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold flex items-center gap-1.5 truncate">
+                <span>{arr.destination}행</span>
+                {arr.isExpress && <span className="text-[10px] bg-red-100 text-red-600 px-1 py-0.5 rounded-full font-bold">급행</span>}
+                {arr.isLastTrain && <span className="text-[10px] bg-orange-100 text-orange-600 px-1 py-0.5 rounded-full font-bold">막차</span>}
+              </div>
+              <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                {arr.updown || arr.direction} · {arr.currentStation} 출발
+              </div>
+            </div>
+            <span className="text-sm font-bold text-primary flex-shrink-0">{arr.remainingTime}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
