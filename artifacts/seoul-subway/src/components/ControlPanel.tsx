@@ -698,7 +698,7 @@ interface SavedStation {
   id: string;
   lineNumber: string;
   stationName: string;
-  direction: "상행" | "하행" | "all";
+  direction: string; // "all", "상행", "하행", or free-text destination e.g. "홍대입구"
 }
 
 function useLocalStorage<T>(key: string, defaultValue: T) {
@@ -725,31 +725,33 @@ function MySubwayTab() {
   const [adding, setAdding] = useState(false);
   const [formLine, setFormLine] = useState<string | null>(null);
   const [formStation, setFormStation] = useState<Station | null>(null);
-  const [formDir, setFormDir] = useState<"상행" | "하행" | "all">("all");
+  const [formDest, setFormDest] = useState("전체");
 
   const addStation = () => {
     if (!formLine || !formStation) return;
     const entry: SavedStation = {
-      id: `${formLine}-${formStation.name}-${formDir}-${Date.now()}`,
+      id: `${formLine}-${formStation.name}-${formDest}-${Date.now()}`,
       lineNumber: formLine,
       stationName: formStation.name,
-      direction: formDir,
+      direction: formDest.trim() || "전체",
     };
     setSaved(prev => [...prev, entry]);
     setAdding(false);
     setFormLine(null);
     setFormStation(null);
-    setFormDir("all");
+    setFormDest("전체");
   };
 
   const cancelAdd = () => {
     setAdding(false);
     setFormLine(null);
     setFormStation(null);
-    setFormDir("all");
+    setFormDest("전체");
   };
 
   const remove = (id: string) => setSaved((prev: SavedStation[]) => prev.filter((s: SavedStation) => s.id !== id));
+
+  const lineColor = formLine ? LINE_COLORS[formLine] : "#6366f1";
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -800,23 +802,40 @@ function MySubwayTab() {
             </div>
           )}
 
-          {/* Step 3: Direction */}
+          {/* Step 3: Destination (free-text OO행) */}
           {formStation && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-1.5">③ 방향</p>
-              <div className="flex gap-1.5">
-                {(["all", "상행", "하행"] as const).map(d => (
-                  <button key={d} onClick={() => setFormDir(d)}
-                    className="px-3 py-1 rounded-full text-xs font-bold border-2 transition-all"
+              <p className="text-xs font-medium text-muted-foreground mb-1.5">③ 행선지 <span className="font-normal">(OO행)</span></p>
+              {/* Quick chips */}
+              <div className="flex gap-1.5 mb-2">
+                {["전체", "상행", "하행"].map(chip => (
+                  <button key={chip} onClick={() => setFormDest(chip)}
+                    className="px-2.5 py-0.5 rounded-full text-xs font-bold border-2 transition-all"
                     style={{
-                      backgroundColor: formDir === d ? (formLine ? LINE_COLORS[formLine] : "#555") : "transparent",
-                      color: formDir === d ? "#fff" : (formLine ? LINE_COLORS[formLine] : "#555"),
-                      borderColor: formLine ? LINE_COLORS[formLine] : "#555",
-                    }}>
-                    {d === "all" ? "전체" : d}
-                  </button>
+                      backgroundColor: formDest === chip ? lineColor : "transparent",
+                      color: formDest === chip ? "#fff" : lineColor,
+                      borderColor: lineColor,
+                    }}>{chip}</button>
                 ))}
               </div>
+              {/* Free-text input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  value={formDest}
+                  onChange={e => setFormDest(e.target.value)}
+                  placeholder="예: 홍대입구, 인천, 당고개"
+                  className="w-full border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 pr-10"
+                  style={{ focusRingColor: lineColor } as React.CSSProperties}
+                />
+                {formDest && formDest !== "전체" && (
+                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold"
+                    style={{ color: lineColor }}>행</span>
+                )}
+              </div>
+              <p className="text-[10px] text-muted-foreground mt-1">
+                행선지를 입력하거나 위 버튼으로 빠르게 선택하세요
+              </p>
             </div>
           )}
 
@@ -826,7 +845,7 @@ function MySubwayTab() {
               onClick={addStation}
               disabled={!formLine || !formStation}
               className="flex-1 py-1.5 rounded-lg text-xs font-bold text-white transition-all disabled:opacity-40"
-              style={{ backgroundColor: formLine ? LINE_COLORS[formLine] : "#888" }}
+              style={{ backgroundColor: lineColor }}
             >추가</button>
             <button onClick={cancelAdd}
               className="flex-1 py-1.5 rounded-lg text-xs font-bold border border-gray-300 text-gray-500 hover:bg-gray-100">
@@ -863,6 +882,8 @@ function MySubwayTab() {
 }
 
 function MyStationCard({ entry, onRemove }: { entry: SavedStation; onRemove: () => void }) {
+  const [expanded, setExpanded] = useState(true);
+
   const { data: rawArrivals, isLoading } = useGetRealtimeArrival(entry.stationName, {
     query: { enabled: true, refetchInterval: 30000, queryKey: getGetRealtimeArrivalQueryKey(entry.stationName) }
   });
@@ -876,11 +897,19 @@ function MyStationCard({ entry, onRemove }: { entry: SavedStation; onRemove: () 
       a.line === targetLineName ||
       a.line?.includes(entry.lineNumber)
     );
-    if (entry.direction !== "all") {
-      list = list.filter(a => {
-        const d = (a.updown || a.direction || "").trim();
-        return d.includes(entry.direction) || d === entry.direction;
-      });
+    const dir = entry.direction;
+    if (dir && dir !== "전체" && dir !== "all") {
+      if (dir === "상행" || dir === "하행") {
+        list = list.filter(a => {
+          const d = (a.updown || a.direction || "").trim();
+          return d.includes(dir) || d === dir;
+        });
+      } else {
+        // free-text destination filter
+        list = list.filter(a =>
+          (a.destination || "").includes(dir)
+        );
+      }
     }
     return [...list]
       .sort((a, b) => (a.remainingSec ?? 9999) - (b.remainingSec ?? 9999))
@@ -889,47 +918,71 @@ function MyStationCard({ entry, onRemove }: { entry: SavedStation; onRemove: () 
 
   const lineColor = LINE_COLORS[entry.lineNumber] || "#888";
   const lineName = LINE_NAMES[entry.lineNumber] || entry.lineNumber;
-  const dirLabel = entry.direction === "all" ? "전체" : entry.direction;
+  const dirLabel = (entry.direction === "all" || entry.direction === "전체") ? "전체" : `${entry.direction}행`;
+
+  // Quick summary shown when collapsed
+  const summary = isLoading
+    ? "불러오는 중…"
+    : arrivals.length > 0
+      ? `${arrivals[0].destination}행 ${arrivals[0].remainingTime}`
+      : "도착 예정 없음";
 
   return (
     <div className="border rounded-lg overflow-hidden shadow-sm">
-      {/* Colored header */}
-      <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor: lineColor }}>
+      {/* Colored header — click to toggle */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center gap-2 px-3 py-2 text-left transition-opacity hover:opacity-90"
+        style={{ backgroundColor: lineColor }}
+      >
         <span className="text-white font-bold text-sm">{lineName}</span>
         <span className="text-white/60 text-sm">·</span>
         <span className="text-white font-bold text-sm">{entry.stationName}역</span>
         <span className="text-white/70 text-xs ml-0.5 bg-white/20 rounded px-1">{dirLabel}</span>
-        <button
-          onClick={onRemove}
-          className="ml-auto w-5 h-5 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white text-xs transition-all"
-        >×</button>
-      </div>
+        {/* Collapsed summary */}
+        {!expanded && (
+          <span className="ml-auto text-white/90 text-xs font-semibold truncate max-w-[100px]">{summary}</span>
+        )}
+        {/* Chevron */}
+        <span
+          className="flex-shrink-0 text-white/80 text-[10px] transition-transform duration-200"
+          style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", marginLeft: expanded ? "auto" : "4px" }}
+        >▼</span>
+        {/* Delete — stopPropagation so it doesn't toggle */}
+        <span
+          role="button"
+          onClick={e => { e.stopPropagation(); onRemove(); }}
+          className="w-5 h-5 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/40 text-white text-xs transition-all flex-shrink-0"
+        >×</span>
+      </button>
 
-      {/* Arrival rows */}
-      <div className="divide-y bg-card">
-        {isLoading && (
-          <div className="px-3 py-2.5 text-sm text-muted-foreground">불러오는 중...</div>
-        )}
-        {!isLoading && arrivals.length === 0 && (
-          <div className="px-3 py-2.5 text-sm text-muted-foreground">도착 예정 열차 없음</div>
-        )}
-        {arrivals.map((arr: any, i: number) => (
-          <div key={i} className="flex items-center gap-3 px-3 py-2">
-            <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground flex-shrink-0">{i + 1}</span>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-semibold flex items-center gap-1.5 truncate">
-                <span>{arr.destination}행</span>
-                {arr.isExpress && <span className="text-[10px] bg-red-100 text-red-600 px-1 py-0.5 rounded-full font-bold">급행</span>}
-                {arr.isLastTrain && <span className="text-[10px] bg-orange-100 text-orange-600 px-1 py-0.5 rounded-full font-bold">막차</span>}
+      {/* Arrival rows — only when expanded */}
+      {expanded && (
+        <div className="divide-y bg-card">
+          {isLoading && (
+            <div className="px-3 py-2.5 text-sm text-muted-foreground">불러오는 중...</div>
+          )}
+          {!isLoading && arrivals.length === 0 && (
+            <div className="px-3 py-2.5 text-sm text-muted-foreground">도착 예정 열차 없음</div>
+          )}
+          {arrivals.map((arr: any, i: number) => (
+            <div key={i} className="flex items-center gap-3 px-3 py-2">
+              <span className="w-5 h-5 rounded-full bg-muted flex items-center justify-center text-xs font-bold text-muted-foreground flex-shrink-0">{i + 1}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold flex items-center gap-1.5 truncate">
+                  <span>{arr.destination}행</span>
+                  {arr.isExpress && <span className="text-[10px] bg-red-100 text-red-600 px-1 py-0.5 rounded-full font-bold">급행</span>}
+                  {arr.isLastTrain && <span className="text-[10px] bg-orange-100 text-orange-600 px-1 py-0.5 rounded-full font-bold">막차</span>}
+                </div>
+                <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                  {arr.updown || arr.direction} · {arr.currentStation} 출발
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                {arr.updown || arr.direction} · {arr.currentStation} 출발
-              </div>
+              <span className="text-sm font-bold text-primary flex-shrink-0">{arr.remainingTime}</span>
             </div>
-            <span className="text-sm font-bold text-primary flex-shrink-0">{arr.remainingTime}</span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
