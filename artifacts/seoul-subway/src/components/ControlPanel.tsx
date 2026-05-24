@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import { useDebounce } from "@/hooks/use-debounce";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import IndoorNavigationModal from "@/components/IndoorNavigationModal";
 
 const LINE_COLORS: Record<string, string> = {
   "1": "#0052A4", "2": "#00A84D", "3": "#EF7C1C", "4": "#00A5DE",
@@ -77,6 +78,8 @@ interface Props {
 }
 
 export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
+  const [indoorNavStation, setIndoorNavStation] = useState<{ name: string; lineNumber?: string } | null>(null);
+
   return (
     <div className="h-full flex flex-col px-3 pt-2 pb-2">
       <Tabs defaultValue="route" className="w-full h-full flex flex-col">
@@ -87,16 +90,24 @@ export default function ControlPanel({ onLineSelect, onStationSelect }: Props) {
         </TabsList>
         <div className="flex-1 overflow-hidden relative min-h-0">
           <TabsContent value="route" className="absolute inset-0 m-0 overflow-hidden">
-            <RouteTab />
+            <RouteTab onIndoorNav={(name, lineNumber) => setIndoorNavStation({ name, lineNumber })} />
           </TabsContent>
           <TabsContent value="arrival" className="absolute inset-0 m-0 overflow-hidden">
-            <ArrivalTab onLineSelect={onLineSelect} />
+            <ArrivalTab onLineSelect={onLineSelect} onIndoorNav={(name, lineNumber) => setIndoorNavStation({ name, lineNumber })} />
           </TabsContent>
           <TabsContent value="mysubway" className="absolute inset-0 m-0 overflow-hidden">
-            <MySubwayTab />
+            <MySubwayTab onIndoorNav={(name, lineNumber) => setIndoorNavStation({ name, lineNumber })} />
           </TabsContent>
         </div>
       </Tabs>
+
+      {indoorNavStation && (
+        <IndoorNavigationModal
+          stationName={indoorNavStation.name}
+          lineNumber={indoorNavStation.lineNumber}
+          onClose={() => setIndoorNavStation(null)}
+        />
+      )}
     </div>
   );
 }
@@ -128,7 +139,7 @@ function CarDoorInline({ car, door }: { car: string; door: string }) {
 // ─────────────────────────────────────────────────────────────────
 // 2. 경로 탐색 Tab  (환승 상세 + 혼잡도)
 // ─────────────────────────────────────────────────────────────────
-function RouteTab() {
+function RouteTab({ onIndoorNav }: { onIndoorNav: (name: string, lineNumber?: string) => void }) {
   const [from, setFrom] = useState<Station | null>(null);
   const [to, setTo] = useState<Station | null>(null);
   const [searched, setSearched] = useState(false);
@@ -384,6 +395,12 @@ function RouteTab() {
                           {seg.stations[0]} → {lastStation}
                         </span>
                         <span className="text-xs text-muted-foreground flex-shrink-0">{stationCount}정거장</span>
+                        <button
+                          onClick={() => onIndoorNav(seg.stations[0], seg.lineNumber)}
+                          className="flex-shrink-0 ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold border transition-colors hover:text-white"
+                          style={{ borderColor: seg.lineColor, color: seg.lineColor }}
+                          title={`${seg.stations[0]}역 실내 안내`}
+                        >실내</button>
                       </div>
 
                       {/* ── 역 내 안내도: 탑승·이동·하차 단계 ────────── */}
@@ -465,7 +482,7 @@ function RouteTab() {
 // ─────────────────────────────────────────────────────────────────
 // 3. 실시간 도착 Tab  (노선+역 종합 필터, 상행/하행, 시간순 정렬)
 // ─────────────────────────────────────────────────────────────────
-function ArrivalTab({ onLineSelect }: { onLineSelect?: (l: string | null) => void }) {
+function ArrivalTab({ onLineSelect, onIndoorNav }: { onLineSelect?: (l: string | null) => void; onIndoorNav: (name: string, lineNumber?: string) => void }) {
   const [selectedLine, setSelectedLine] = useState<string | null>(null);
   const [station, setStation] = useState<Station | null>(null);
   const [direction, setDirection] = useState<"all" | "상행" | "하행">("all");
@@ -595,6 +612,18 @@ function ArrivalTab({ onLineSelect }: { onLineSelect?: (l: string | null) => voi
               <div className="text-sm text-muted-foreground text-center py-5 space-y-1">
                 <div>도착 예정 열차가 없습니다</div>
                 {direction !== "all" && <div className="text-xs">방향 필터를 '전체'로 변경해 보세요</div>}
+              </div>
+            )}
+
+            {station && (
+              <div className="mb-2 flex items-center gap-2">
+                <button
+                  onClick={() => onIndoorNav(station.name, selectedLine ?? undefined)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-bold transition-colors"
+                  style={{ borderColor: selectedLine ? LINE_COLORS[selectedLine] : "#888", color: selectedLine ? LINE_COLORS[selectedLine] : "#888" }}
+                >
+                  <span>🗺</span> {station.name}역 실내 안내
+                </button>
               </div>
             )}
 
@@ -785,7 +814,7 @@ function useLocalStorage<T>(key: string, defaultValue: T) {
   return [value, set] as const;
 }
 
-function MySubwayTab() {
+function MySubwayTab({ onIndoorNav }: { onIndoorNav: (name: string, lineNumber?: string) => void }) {
   const [saved, setSaved] = useLocalStorage<SavedStation[]>("my-subway-stations", []);
   const [adding, setAdding] = useState(false);
   const [formLine, setFormLine] = useState<string | null>(null);
@@ -928,7 +957,7 @@ function MySubwayTab() {
           <ScrollArea className="h-full">
             <div className="space-y-3 pb-2">
               {saved.map(entry => (
-                <MyStationCard key={entry.id} entry={entry} onRemove={() => remove(entry.id)} />
+                <MyStationCard key={entry.id} entry={entry} onRemove={() => remove(entry.id)} onIndoorNav={onIndoorNav} />
               ))}
             </div>
           </ScrollArea>
@@ -938,7 +967,7 @@ function MySubwayTab() {
   );
 }
 
-function MyStationCard({ entry, onRemove }: { entry: SavedStation; onRemove: () => void }) {
+function MyStationCard({ entry, onRemove, onIndoorNav }: { entry: SavedStation; onRemove: () => void; onIndoorNav: (name: string, lineNumber?: string) => void }) {
   const [expanded, setExpanded] = useState(true);
 
   const { data: rawArrivals, isLoading } = useGetRealtimeArrival(entry.stationName, {
@@ -1008,6 +1037,13 @@ function MyStationCard({ entry, onRemove }: { entry: SavedStation; onRemove: () 
           className="flex-shrink-0 text-white/80 text-[10px] transition-transform duration-200"
           style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)", marginLeft: expanded ? "auto" : "4px" }}
         >▼</span>
+        {/* Indoor nav */}
+        <span
+          role="button"
+          onClick={e => { e.stopPropagation(); onIndoorNav(entry.stationName, entry.lineNumber); }}
+          className="px-1.5 py-0.5 rounded text-white/80 bg-white/20 hover:bg-white/40 text-[10px] font-bold transition-all flex-shrink-0"
+          title="실내 안내"
+        >실내</span>
         {/* Delete — stopPropagation so it doesn't toggle */}
         <span
           role="button"

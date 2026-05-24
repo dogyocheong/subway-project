@@ -17,7 +17,9 @@ import type {
   ArrivalResponse,
   ErrorResponse,
   FindRouteParams,
+  GetIndoorNavParams,
   HealthStatus,
+  IndoorNavResponse,
   RouteResult,
   SearchStationsParams,
   Station,
@@ -539,6 +541,126 @@ export function useGetStationMap<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetStationMapQueryOptions(stationName, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns structured indoor navigation data extracted from station floor plan images
+ * @summary Get AI-analyzed indoor navigation data for a station
+ */
+export const getGetIndoorNavUrl = (
+  stationName: string,
+  params?: GetIndoorNavParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/subway/indoor-nav/${stationName}?${stringifiedParams}`
+    : `/api/subway/indoor-nav/${stationName}`;
+};
+
+export const getIndoorNav = async (
+  stationName: string,
+  params?: GetIndoorNavParams,
+  options?: RequestInit,
+): Promise<IndoorNavResponse> => {
+  return customFetch<IndoorNavResponse>(
+    getGetIndoorNavUrl(stationName, params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetIndoorNavQueryKey = (
+  stationName: string,
+  params?: GetIndoorNavParams,
+) => {
+  return [
+    `/api/subway/indoor-nav/${stationName}`,
+    ...(params ? [params] : []),
+  ] as const;
+};
+
+export const getGetIndoorNavQueryOptions = <
+  TData = Awaited<ReturnType<typeof getIndoorNav>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  stationName: string,
+  params?: GetIndoorNavParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIndoorNav>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetIndoorNavQueryKey(stationName, params);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getIndoorNav>>> = ({
+    signal,
+  }) => getIndoorNav(stationName, params, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!stationName,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getIndoorNav>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetIndoorNavQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getIndoorNav>>
+>;
+export type GetIndoorNavQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get AI-analyzed indoor navigation data for a station
+ */
+
+export function useGetIndoorNav<
+  TData = Awaited<ReturnType<typeof getIndoorNav>>,
+  TError = ErrorType<ErrorResponse>,
+>(
+  stationName: string,
+  params?: GetIndoorNavParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getIndoorNav>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetIndoorNavQueryOptions(
+    stationName,
+    params,
+    options,
+  );
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

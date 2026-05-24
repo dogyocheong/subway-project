@@ -152,6 +152,39 @@ paths:
               schema:
                 $ref: "#/components/schemas/StationMap"
 
+  /subway/indoor-nav/{stationName}:
+    get:
+      operationId: getIndoorNav
+      tags: [subway]
+      summary: Get AI-analyzed indoor navigation data for a station
+      description: Returns structured indoor navigation data extracted from station floor plan images
+      parameters:
+        - name: stationName
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Station name in Korean
+        - name: line
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Line number to disambiguate transfer stations (e.g. "1", "2")
+      responses:
+        "200":
+          description: Indoor navigation data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/IndoorNavResponse"
+        "404":
+          description: Station not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -306,6 +339,96 @@ components:
             $ref: "#/components/schemas/StationFacility"
         transferInfo:
           type: ["string", "null"]
+
+    IndoorFloor:
+      type: object
+      required: [level, name]
+      properties:
+        level:
+          type: string
+        name:
+          type: string
+
+    IndoorExit:
+      type: object
+      required: [number, description]
+      properties:
+        number:
+          type: string
+        description:
+          type: string
+
+    IndoorFacility:
+      type: object
+      required: [type, location, floors]
+      properties:
+        type:
+          type: string
+        location:
+          type: string
+        floors:
+          type: string
+
+    IndoorDirection:
+      type: object
+      required: [toward, side]
+      properties:
+        toward:
+          type: string
+        side:
+          type: string
+
+    IndoorTransfer:
+      type: object
+      required: [line, floor, description]
+      properties:
+        line:
+          type: string
+        floor:
+          type: string
+        description:
+          type: string
+
+    IndoorNavResponse:
+      type: object
+      required: [stationCode, stationName, line, floors, exits, facilities, directions, transfers, voiceGuide]
+      properties:
+        stationCode:
+          type: string
+        stationName:
+          type: string
+        line:
+          type: string
+        floors:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndoorFloor"
+        exits:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndoorExit"
+        facilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndoorFacility"
+        directions:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndoorDirection"
+        transfers:
+          type: array
+          items:
+            $ref: "#/components/schemas/IndoorTransfer"
+        voiceGuide:
+          type: string
+        allLines:
+          description: All results for transfer stations (multiple lines at same station)
+          type: array
+          items:
+            type: object
+            properties:
+              line: { type: string }
+              voiceGuide: { type: string }
 
     ErrorResponse:
       type: object

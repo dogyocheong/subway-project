@@ -80,6 +80,52 @@ export interface StationMap {
   transferInfo?: string | null;
 }
 
+export interface IndoorFloor {
+  level: string;
+  name: string;
+}
+
+export interface IndoorExit {
+  number: string;
+  description: string;
+}
+
+export interface IndoorFacility {
+  type: string;
+  location: string;
+  floors: string;
+}
+
+export interface IndoorDirection {
+  toward: string;
+  side: string;
+}
+
+export interface IndoorTransfer {
+  line: string;
+  floor: string;
+  description: string;
+}
+
+export type IndoorNavResponseAllLinesItem = {
+  line?: string;
+  voiceGuide?: string;
+};
+
+export interface IndoorNavResponse {
+  stationCode: string;
+  stationName: string;
+  line: string;
+  floors: IndoorFloor[];
+  exits: IndoorExit[];
+  facilities: IndoorFacility[];
+  directions: IndoorDirection[];
+  transfers: IndoorTransfer[];
+  voiceGuide: string;
+  /** All results for transfer stations (multiple lines at same station) */
+  allLines?: IndoorNavResponseAllLinesItem[];
+}
+
 export interface ErrorResponse {
   error: string;
 }
@@ -104,4 +150,11 @@ export type FindRouteParams = {
    * Destination station name
    */
   to: string;
+};
+
+export type GetIndoorNavParams = {
+  /**
+   * Line number to disambiguate transfer stations (e.g. "1", "2")
+   */
+  line?: string;
 };

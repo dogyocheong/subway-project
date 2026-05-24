@@ -129,3 +129,70 @@ export const GetStationMapResponse = zod.object({
   ),
   transferInfo: zod.string().nullish(),
 });
+
+/**
+ * Returns structured indoor navigation data extracted from station floor plan images
+ * @summary Get AI-analyzed indoor navigation data for a station
+ */
+export const GetIndoorNavParams = zod.object({
+  stationName: zod.coerce.string().describe("Station name in Korean"),
+});
+
+export const GetIndoorNavQueryParams = zod.object({
+  line: zod.coerce
+    .string()
+    .optional()
+    .describe(
+      'Line number to disambiguate transfer stations (e.g. \"1\", \"2\")',
+    ),
+});
+
+export const GetIndoorNavResponse = zod.object({
+  stationCode: zod.string(),
+  stationName: zod.string(),
+  line: zod.string(),
+  floors: zod.array(
+    zod.object({
+      level: zod.string(),
+      name: zod.string(),
+    }),
+  ),
+  exits: zod.array(
+    zod.object({
+      number: zod.string(),
+      description: zod.string(),
+    }),
+  ),
+  facilities: zod.array(
+    zod.object({
+      type: zod.string(),
+      location: zod.string(),
+      floors: zod.string(),
+    }),
+  ),
+  directions: zod.array(
+    zod.object({
+      toward: zod.string(),
+      side: zod.string(),
+    }),
+  ),
+  transfers: zod.array(
+    zod.object({
+      line: zod.string(),
+      floor: zod.string(),
+      description: zod.string(),
+    }),
+  ),
+  voiceGuide: zod.string(),
+  allLines: zod
+    .array(
+      zod.object({
+        line: zod.string().optional(),
+        voiceGuide: zod.string().optional(),
+      }),
+    )
+    .optional()
+    .describe(
+      "All results for transfer stations (multiple lines at same station)",
+    ),
+});
