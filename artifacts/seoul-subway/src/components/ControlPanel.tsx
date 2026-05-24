@@ -692,6 +692,71 @@ function StationInput({
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Destination autocomplete input (for 나의 지하철 행선지 step)
+// ─────────────────────────────────────────────────────────────────
+function DestinationInput({
+  value, onChange, lineFilter, color,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  lineFilter: string | null;
+  color: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const dq = useDebounce(value, 200);
+  const isQuick = value === "전체" || value === "상행" || value === "하행";
+
+  const { data: stations } = useSearchStations(
+    { q: dq, line: lineFilter ?? undefined },
+    { query: { enabled: dq.length > 0 && !isQuick, queryKey: getSearchStationsQueryKey({ q: dq, line: lineFilter ?? undefined }) } }
+  );
+
+  const suggestions = React.useMemo(() => {
+    if (!stations || isQuick) return [];
+    // deduplicate by name
+    const seen = new Set<string>();
+    return stations.filter(s => {
+      if (seen.has(s.name)) return false;
+      seen.add(s.name);
+      return true;
+    }).slice(0, 8);
+  }, [stations, isQuick]);
+
+  return (
+    <div className="relative">
+      <div className="relative">
+        <input
+          type="text"
+          value={value}
+          onChange={e => { onChange(e.target.value); setOpen(true); }}
+          onFocus={() => !isQuick && value.length > 0 && setOpen(true)}
+          onBlur={() => setTimeout(() => setOpen(false), 180)}
+          placeholder="예: 홍대입구, 인천, 당고개"
+          className="w-full border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 pr-8"
+        />
+        {value && !isQuick && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold pointer-events-none"
+            style={{ color }}>행</span>
+        )}
+      </div>
+      {open && suggestions.length > 0 && (
+        <div className="absolute top-full left-0 w-full mt-1 bg-popover border rounded-lg shadow-xl z-50 max-h-40 overflow-y-auto">
+          {suggestions.map(st => (
+            <div key={st.id}
+              className="px-3 py-2 hover:bg-accent cursor-pointer flex items-center gap-2 text-xs"
+              onMouseDown={() => { onChange(st.name); setOpen(false); }}>
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: st.lineColor }} />
+              <span className="font-semibold">{st.name}</span>
+              <span className="text-muted-foreground ml-auto">{st.line}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
 // 4. 나의 지하철 Tab  — localStorage 기반 즐겨찾기 + 실시간 도착
 // ─────────────────────────────────────────────────────────────────
 interface SavedStation {
@@ -818,21 +883,13 @@ function MySubwayTab() {
                     }}>{chip}</button>
                 ))}
               </div>
-              {/* Free-text input */}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={formDest}
-                  onChange={e => setFormDest(e.target.value)}
-                  placeholder="예: 홍대입구, 인천, 당고개"
-                  className="w-full border rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 pr-10"
-                  style={{ focusRingColor: lineColor } as React.CSSProperties}
-                />
-                {formDest && formDest !== "전체" && (
-                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold"
-                    style={{ color: lineColor }}>행</span>
-                )}
-              </div>
+              {/* Autocomplete destination input */}
+              <DestinationInput
+                value={formDest}
+                onChange={setFormDest}
+                lineFilter={formLine}
+                color={lineColor}
+              />
               <p className="text-[10px] text-muted-foreground mt-1">
                 행선지를 입력하거나 위 버튼으로 빠르게 선택하세요
               </p>
@@ -918,7 +975,10 @@ function MyStationCard({ entry, onRemove }: { entry: SavedStation; onRemove: () 
 
   const lineColor = LINE_COLORS[entry.lineNumber] || "#888";
   const lineName = LINE_NAMES[entry.lineNumber] || entry.lineNumber;
-  const dirLabel = (entry.direction === "all" || entry.direction === "전체") ? "전체" : `${entry.direction}행`;
+  const isBuiltin = entry.direction === "all" || entry.direction === "전체" || entry.direction === "상행" || entry.direction === "하행";
+  const dirLabel = (entry.direction === "all" || entry.direction === "전체") ? "전체"
+    : isBuiltin ? entry.direction
+    : `${entry.direction}행`;
 
   // Quick summary shown when collapsed
   const summary = isLoading
