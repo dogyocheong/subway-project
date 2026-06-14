@@ -1,0 +1,3 @@
+- [Indoor nav JSON path fix](indoor-nav-path.md) — `import.meta.dirname` points to dist/ in compiled server; use `process.cwd()` to reach src/routes/ at runtime.
+- [Analysis workflow](analysis-workflow.md) — Station map analysis runs as a Replit workflow (not a bash background job) to survive session boundaries.
+- [Codegen barrel fix](codegen-barrel.md) — orval zod mode must be "single" + postscript rewrites index.ts to prevent TS2308 duplicate export.
