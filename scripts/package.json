@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "@workspace/scripts",
   "version": "0.0.0",
   "private": true,
@@ -12,7 +12,7 @@
     "@anthropic-ai/sdk": "^0.78.0"
   },
   "devDependencies": {
-    "@types/node": "catalog:",
-    "tsx": "catalog:"
+    "@types/node": "25.9.3",
+    "tsx": "4.22.4"
   }
 }

@@ -703,9 +703,9 @@ function StationInput({
         onBlur={() => setTimeout(() => setOpen(false), 180)}
         className="h-11 text-base"
       />
-      {open && stations && stations.length > 0 && (
-        <div className="absolute top-full left-0 w-full mt-1 bg-popover border rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
-          {stations.slice(0, 20).map(st => (
+      {open && Array.isArray(stations) && stations.length > 0 && (
+  <div className="absolute top-full left-0 w-full mt-1 bg-popover border rounded-lg shadow-xl z-50 max-h-52 overflow-y-auto">
+    {stations?.slice(0, 20).map(st => (
             <div key={st.id}
               className="px-4 py-2.5 hover:bg-accent cursor-pointer flex items-center gap-3 text-sm"
               onMouseDown={() => { setQ(st.name); onSelect(st); setOpen(false); }}>
